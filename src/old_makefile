@@ -1,0 +1,60 @@
+SRC_DIR1 := ./
+SRC_DIR2 := ./cheats/
+SRC_DIR3 := ./ini/
+SRC_DIR4 := ./utils/
+SRC_DIR5 := ./game/
+SRC_DIR6 := ./game/helpers
+OBJ_DIR := ../build
+
+SRC_FILES1 := $(wildcard $(SRC_DIR1)/*.cpp)
+SRC_FILES2 := $(wildcard $(SRC_DIR2)/*.cpp)
+SRC_FILES3 := $(wildcard $(SRC_DIR3)/*.cpp $(SRC_DIR3)/*.c)
+SRC_FILES4 := $(wildcard $(SRC_DIR4)/*.cpp $(SRC_DIR4)/*.c)
+SRC_FILES5 := $(wildcard $(SRC_DIR5)/*.cpp $(SRC_DIR5)/*.c)
+SRC_FILES6 := $(wildcard $(SRC_DIR6)/*.cpp $(SRC_DIR6)/*.c)
+
+OBJ_FILES1 := $(patsubst $(SRC_DIR1)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES1))
+OBJ_FILES2 := $(patsubst $(SRC_DIR2)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES2))
+OBJ_FILES3 := $(patsubst $(SRC_DIR3)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES3))
+OBJ_FILES4 := $(patsubst $(SRC_DIR4)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES4))
+OBJ_FILES5 := $(patsubst $(SRC_DIR5)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES5))
+OBJ_FILES6 := $(patsubst $(SRC_DIR6)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES6))
+
+LDFLAGS := -shared -Wl,--output-def=libscr -Wl,--out-implib=libscr -Wl,--dll -static
+LDENDFLAGS := -m32 -luser32 -lpsapi -lwinmm
+CPPFLAGS := -Wall -D"BUILD_DLL" -g -m32 -std=c++14 -I./
+CXXFLAGS := 
+
+scr.asi: $(OBJ_FILES1) $(OBJ_FILES2) $(OBJ_FILES3) $(OBJ_FILES4) $(OBJ_FILES5) $(OBJ_FILES6)
+	i686-w64-mingw32-g++-posix $(LDFLAGS) -o $(OBJ_DIR)/$@ $^ $(LDENDFLAGS)
+	cp $(OBJ_DIR)/$@ "/home/druckis3000/Games/GTA San Andreas/GTA San Andreas/scr.asi"
+
+safe: $(OBJ_FILES1) $(OBJ_FILES2) $(OBJ_FILES3) $(OBJ_FILES4) $(OBJ_FILES5) $(OBJ_FILES6)
+	i686-w64-mingw32-g++-posix $(LDFLAGS) -o $(OBJ_DIR)/"scr.asi" $^ $(LDENDFLAGS)
+
+cleanx:
+	rm ./build/gtasa.o
+	rm ./build/main.o
+	rm ./build/samp.o
+	rm ./build/scr.asi
+
+clean:
+	rm ./build/*
+
+$(OBJ_DIR)/%.o: $(SRC_DIR1)/%.cpp
+	i686-w64-mingw32-g++-posix $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJ_DIR)/%.o: $(SRC_DIR2)/%.cpp
+	i686-w64-mingw32-g++-posix $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	
+$(OBJ_DIR)/%.o: $(SRC_DIR3)/%.cpp
+	i686-w64-mingw32-g++-posix $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	
+$(OBJ_DIR)/%.o: $(SRC_DIR4)/%.cpp
+	i686-w64-mingw32-g++-posix $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	
+$(OBJ_DIR)/%.o: $(SRC_DIR5)/%.cpp
+	i686-w64-mingw32-g++-posix $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	
+$(OBJ_DIR)/%.o: $(SRC_DIR6)/%.cpp
+	i686-w64-mingw32-g++-posix $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
