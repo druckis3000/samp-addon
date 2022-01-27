@@ -4,6 +4,8 @@
 #include <mutex>
 #include <queue>
 
+/** Queue class safe for multi-threading */
+
 template<class T>
 class TQueue {
 private:

@@ -9,14 +9,15 @@
 #include <windows.h>
 #include <thread>
 
-/** How it works? When you are fishing and fish is on hook, server shows
- * you big message informing you that you have some fish. When cheat captures
- * such message, it boardcasts left mouse click event to the system. Additionally,
- * there is registered client command "/afk", when you type it, it will toggle afk
- * system, which when turned on makes samp able to work when minimized. Aaaditionally,
- * there is one socket :D when server informs that you have full inventory of fish,
- * socket sends message to the NodeJS server informing about situation, thus NodeJS
- * can show notification for player, while samp is working in background :D
+/** How it works? When player is fishing and fish is on hook, server shows
+ * big message, informing player about fish on hook. When cheat captures
+ * such message, it simulates left mouse click. Additionally, there is client
+ * command "/afk", which toggle afk mode and enables minimazing samp window.
+ * When inventory is full, sound will be played to inform player.
+ * 
+ * /ztd - for showing fish count textdraw
+ * /zzv - toggle fishing bot
+ * /afk - toggle afk mode (toggle cursor as well)
  */
 
 namespace CheatZvejyba {
@@ -39,7 +40,7 @@ namespace CheatZvejyba {
 
 	// ----- Private variables -----
 
-	volatile bool bCheatEnabled = false;
+	volatile bool bCheatEnabled = true;
 
 	// Used for catching with mouse press
 	volatile double lastCatchTime;
@@ -50,7 +51,7 @@ namespace CheatZvejyba {
 	// Used for toggling afk mode
 	bool afkEnabled = false;
 
-	// Used for toggling fish textdraw
+	// Fish count textdraw
 	bool showFishTextdraw = false;
 	int fishTextdrawId = -1;
 
@@ -60,7 +61,7 @@ namespace CheatZvejyba {
 	// ----- Private functions -----
 
 	void toggleAfk();
-	void kimba();
+	void pullFish();
 	void throwAgain();
 	void updateFishCount(int c);
 }
@@ -78,11 +79,11 @@ void CheatZvejyba::setupCheat()
 		if(strlen(text) > 0){
 			if(strstr(text, "Kimba") != 0){
 				#ifdef LOG_VERBOSE
-					Log("cheat_zvejyba.cpp: ShowBigMessage: Kimba!");
+					Log("cheat_zvejyba.cpp: ShowBigMessage: Fish on hook!");
 				#endif
 
 				// Got fish!
-				CheatZvejyba::kimba();
+				CheatZvejyba::pullFish();
 			}
 		}
 	});
@@ -100,7 +101,7 @@ void CheatZvejyba::setupCheat()
 
 		if(showFishTextdraw){
 			if(fishTextdrawId == -1){
-				fishTextdrawId = createTextdrawWithId(88, "~w~Zuvis: ~g~", 575.0, 350.0, 0xFFFFFFFF);
+				fishTextdrawId = createTextdrawWithId(88, "~w~Fish: ~g~", 575.0, 350.0, 0xFFFFFFFF);
 			}
 			
 			setTextdrawVisible(FISH_TEXTDRAW_ID, 1);
@@ -114,15 +115,15 @@ void CheatZvejyba::setupCheat()
 		bCheatEnabled = !bCheatEnabled;
 
 		// Inform player about current cheat state
-		if(bCheatEnabled) GTA_SA::addMessage((const char*)"Zvejybos bot~n~~g~Ijungtas", 2000, 0, false);
-		else GTA_SA::addMessage((const char*)"Zvejybos bot~n~~r~Isjungtas", 2000, 0, false);
+		if(bCheatEnabled) GTA_SA::addMessage((const char*)"Fishing bot~n~~g~On", 2000, 0, false);
+		else GTA_SA::addMessage((const char*)"Fishing bot~n~~r~Off", 2000, 0, false);
 	});
 
 	#ifdef LOG_VERBOSE
 		Log("cheat_zvejyba.cpp: Loading settings");
 	#endif
 
-	bCheatEnabled = Settings::getBool("lsg", "zvejybaBot", false);
+	bCheatEnabled = Settings::getBool("lsg", "zvejybaBot", true);
 }
 
 void CheatZvejyba::updateCheat()
@@ -143,7 +144,7 @@ void CheatZvejyba::updateCheat()
 
 				// Full inventory!
 				// Inform player
-				infoMsg(TXT_COLOR, "Turite per daug žuvies!");
+				infoMsg(TXT_COLOR, "Full inventory!");
 
 				if(fishCount != 20){
 					updateFishCount(20);
@@ -185,13 +186,13 @@ void CheatZvejyba::updateCheat()
 	}
 }
 
-void CheatZvejyba::kimba()
+void CheatZvejyba::pullFish()
 {
 	// Inform player about pulling
-	infoMsg(TXT_COLOR, "Traukiam!!");
+	infoMsg(TXT_COLOR, "Pulling!!");
 	
 	#ifdef LOG_VERBOSE
-		Log("cheat_zvejyba.cpp: Closing dialogs (if there's any visible)");
+		Log("cheat_zvejyba.cpp: Closing dialogs (if there's any)");
 	#endif
 
 	// If chat input or scoreboard is shown, hide them
@@ -205,7 +206,7 @@ void CheatZvejyba::kimba()
 		while(isSampDialogActive());
 		double timeDiff = GetTimeMillis() - start;
 		int sleepTime = t2 - (int)(timeDiff * 1000);
-		if(sleepTime > 0) Sleep(sleepTime * 2); // * 2 is new, might not be necessary
+		if(sleepTime > 0) Sleep(sleepTime * 2);
 	}
 
 	// If cursor is shown, hide it, so gta receives input
@@ -222,7 +223,7 @@ void CheatZvejyba::kimba()
 	}
 
 	#ifdef LOG_VERBOSE
-		Log("cheat_zvejyba.cpp: Click LMB");
+		Log("cheat_zvejyba.cpp: Simulate LMB click");
 	#endif
 
 	mouseClick(LEFT_MOUSE_BUTTON, t3);
@@ -259,7 +260,7 @@ void CheatZvejyba::throwAgain()
 		Log("cheat_zvejyba.cpp: Rod pulled out, throw it again");
 	#endif
 
-	infoMsg(TXT_COLOR, "Oops, zvejojam vel");
+	infoMsg(TXT_COLOR, "Oops, continue fishing");
 	// Put some delay
 	std::thread runAsync([=]{
 		Sleep(670);
@@ -280,15 +281,23 @@ void CheatZvejyba::toggleAfk()
 		// Don't pause when in ESC menu
 		memset((BYTE*)0x74542B, 0x90, 8);
 		// Keep SAMP working when not in focus
-		memset((BYTE*)0x53EA88, 0x90, 6);
+		//memset((BYTE*)0x53EA88, 0x90, 6);
+
+		// Disable menu after alt-tab
+		//memset((BYTE*)0x53BC78, 0x00, 1);
+
+		// ALLOW ALT+TABBING WITHOUT PAUSING
+		memset((BYTE*)0x748A8D, 0x90, 6);
+		//injector::MakeJMP(0x6194A0, AllowMouseMovement, true);
+		//writeMemory(0x6194A0, 0x90, 6);
 		
-		// Wait until samp hides cursor itself after typing /afk command
+		// Wait until samp hides cursor after typing /afk command
 		Sleep(200);
 		
 		// Show cursor, so that input actions done not in GTA window will not be processed by GTA
 		toggleSampCursor(2, false, true);
 		
-		GTA_SA::addMessage((char*)"AFK sistema~n~~g~Ijungta", 2000, 0, false);
+		GTA_SA::addMessage((char*)"AFK system~n~~g~On", 2000, 0, false);
 	}else{
 		#ifdef LOG_VERBOSE
 			Log("cheat_zvejyba.cpp: Disabling AFK mode");
@@ -296,15 +305,16 @@ void CheatZvejyba::toggleAfk()
 
 		// Reset overwritten memory
 		memcpy((BYTE*)0x74542B, "\x50\x51\xFF\x15\x00\x83\x85\x00", 8);
-		memcpy((BYTE*)0x53EA88, "\x0F\x84\x7B\x01\x00\x00", 6);
-		
+		//memcpy((BYTE*)0x53EA88, "\x0F\x84\x7B\x01\x00\x00", 6);
+		memcpy((BYTE*)0x748A8D, "\x0F\x84\x20\x03\x00\x00", 6);
+
 		// Wait until samp hides cursor itself after typing /afk command
 		Sleep(200);
 		
 		// Hide cursor
 		toggleSampCursor(0, true, true);
 		
-		GTA_SA::addMessage((const char*)"AFK sistema~n~~r~Isjungta", 2000, 0, false);
+		GTA_SA::addMessage((const char*)"AFK system~n~~r~Off", 2000, 0, false);
 	}
 }
 
@@ -318,9 +328,7 @@ void CheatZvejyba::updateFishCount(int c)
 
 	if(showFishTextdraw){
 		char tdBuffer[64];
-		sprintf(tdBuffer, "~w~Zuvis: ~g~%d", c);
+		sprintf(tdBuffer, "~w~Fish: ~g~%d", c);
 		setTextdrawText(fishTextdrawId, tdBuffer);
-	//	strcpy(g_Samp->pPools->pTextdraw->playerTextdraw[FISH_TEXTDRAW_ID]->szText, tdBuffer);
-	//	strcpy(g_Samp->pPools->pTextdraw->playerTextdraw[FISH_TEXTDRAW_ID]->szString, tdBuffer);
 	}
 }

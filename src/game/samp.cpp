@@ -10,6 +10,7 @@
 #include "helpers/sampfuncs.h"
 #include "helpers/helper_cmds.hpp"
 #include "helpers/quickload.hpp"
+#include "utils/timercpp.h"
 
 #include <windows.h>
 #include <string>
@@ -134,63 +135,63 @@ bool SAMP::setupSystem()
 	Log("SAMP Loaded! Hooking functions");
 	
 	// Hook addToChatWindow
-	onChatMessageHook.patchAddress = g_SampBaseAddress + 0x67BE2; // 0x67BA2 r4-1
+	onChatMessageHook.patchAddress = g_SampBaseAddress + SAMP_HOOK_ADD_TO_CHAT;
 	onChatMessageHook.hookAddress = (DWORD)HOOK_onChatMessage_NAKED;
 	onChatMessageHook.overwriteSize = 9;
 	MidFuncHook(&onChatMessageHook);
 	
 	// Hook onScoreboardUpdate
-	onScoreboardUpdateHook.patchAddress = g_SampBaseAddress + 0x10533; // 0x1050E r4-1
+	onScoreboardUpdateHook.patchAddress = g_SampBaseAddress + SAMP_HOOK_UPDATE_SCOREBOARD;
 	onScoreboardUpdateHook.hookAddress = (DWORD)HOOK_onScoreboardUpdate_NAKED;
 	onScoreboardUpdateHook.overwriteSize = 6;
 	MidFuncHook(&onScoreboardUpdateHook);
 	
 	// Hook onSetCheckpoint
-	onSetCheckpointHook.patchAddress = g_SampBaseAddress + 0xA1E24; // 0xA1DF4 r4-1
+	onSetCheckpointHook.patchAddress = g_SampBaseAddress + SAMP_HOOK_SET_CHECKPOINT;
 	onSetCheckpointHook.hookAddress = (DWORD)HOOK_onSetCheckpoint_NAKED;
 	onSetCheckpointHook.overwriteSize = 6;
 	MidFuncHook(&onSetCheckpointHook);
 
 	// Hook onShowBigMessage
-	onBigMessageHook.patchAddress = g_SampBaseAddress + 0xA0D43; // 0xA0D13 r4-1
+	onBigMessageHook.patchAddress = g_SampBaseAddress + SAMP_HOOK_SHOW_BIG_MESSAGE;
 	onBigMessageHook.hookAddress = (DWORD)HOOK_onBigMessage_NAKED;
 	onBigMessageHook.overwriteSize = 7;
 	MidFuncHook(&onBigMessageHook);
 
 	// Hook onDialogButton
-	onDialogButtonHook.patchAddress = g_SampBaseAddress + 0x70693; // 0x70663 r4-1
+	onDialogButtonHook.patchAddress = g_SampBaseAddress + SAMP_HOOK_ON_DIALOG_BUTTON;
 	onDialogButtonHook.hookAddress = (DWORD)HOOK_onDialogButton_NAKED;
 	onDialogButtonHook.overwriteSize = 5;
 	MidFuncHook(&onDialogButtonHook);
 
 	// Hook WndProc
-	//wndProcHook.patchAddress = g_SampBaseAddress + 0x61615;
-	//wndProcHook.hookAddress = (DWORD)HOOK_wndProc_NAKED;
-	//wndProcHook.overwriteSize = 6;
-	//MidFuncHook(&wndProcHook);
+	/*wndProcHook.patchAddress = g_SampBaseAddress + SAMP_HOOK_WND_PROC;
+	wndProcHook.hookAddress = (DWORD)HOOK_wndProc_NAKED;
+	wndProcHook.overwriteSize = 6;
+	MidFuncHook(&wndProcHook);*/
 
 	Log("SAMP Functions hooked!");
 	Log("Installing patches");
 
 	// Anti crash
-	writeMemory(g_SampBaseAddress + 0x60A4D, 0x90, 5); // 0x609FD - r4-1
-	writeMemory(g_SampBaseAddress + 0x60A5A, 0x90, 5); // 0x60A0A - r4-1
+	writeMemory(g_SampBaseAddress + SAMP_NOP_ANTI_CRASH_1, 0x90, 5);
+	writeMemory(g_SampBaseAddress + SAMP_NOP_ANTI_CRASH_2, 0x90, 5);
 	Log("Anti-crash ready!");
 
 	// Fast connect
-	DWORD address = FindPattern((char*)"\x3D\xB8\x0B\x00\x00\x76\x4F", (char*)"xxxxxx") + 0x1; // \x3D\xB8\x0B\x00\x00\x76\x50 r4-1
+	DWORD address = FindPattern((char*)SAMP_PATCH_FAST_CONNECT, (char*)"xxxxxx") + 0x1;
 	writeMemory(address, 0x0, 4);
 	Log("Fast connect ready!");
 
 	// Unlimited fps
 	disableFPSLock();
 
-	// Add own functions
+	// Add own commands
 	HelperCmds::registerCmds();
 
 	// Custom nametag distance patch
-	writeMemory(g_SampBaseAddress + 0x75458, 0x90, 6); // 0x75428 r4-1
-	writeMemory(g_SampBaseAddress + 0x74338, 0x90, 6); // 0x74308 r4-1
+	writeMemory(g_SampBaseAddress + SAMP_NOP_NAMETAG_DIST_1, 0x90, 6);
+	writeMemory(g_SampBaseAddress + SAMP_NOP_NAMETAG_DIST_2, 0x90, 6);
 	Log("Nametag distance patched!");
 
 	// Set samp ready flag
@@ -198,6 +199,8 @@ bool SAMP::setupSystem()
 
 	return true;
 }
+
+Timer dbgTimer;
 
 void SAMP::loop()
 {
@@ -208,7 +211,7 @@ void SAMP::loop()
 			// Do something
 			isKey2Pressed = true;
 
-			//infoMsgf("stPlayerPool: %x", g_Samp->pPools->pPlayer);
+			
 		}
 	}else{
 		isKey2Pressed = false;
