@@ -9,8 +9,10 @@
 
 #include "helpers/sampfuncs.h"
 #include "helpers/helper_cmds.hpp"
-#include "helpers/quickload.hpp"
+#include "helpers/fpsdelimiter.hpp"
 #include "utils/timercpp.h"
+
+#include "cheats/cheat_zvejyba.h"
 
 #include <windows.h>
 #include <string>
@@ -200,8 +202,6 @@ bool SAMP::setupSystem()
 	return true;
 }
 
-Timer dbgTimer;
-
 void SAMP::loop()
 {
 	if(!g_IsSampReady) return;
@@ -210,8 +210,6 @@ void SAMP::loop()
 		if(!isKey2Pressed){
 			// Do something
 			isKey2Pressed = true;
-
-			
 		}
 	}else{
 		isKey2Pressed = false;

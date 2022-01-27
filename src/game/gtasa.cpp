@@ -106,6 +106,8 @@ float GTA_SA::getFPS(){ return GTA_SA::g_fAvgFps; }
 
 float GTA_SA::getDelta(){ return GTA_SA::g_fDeltaTime; }
 
+HWND GTA_SA::getHwnd(){ return GTA_SA::hwndGtaSa; }
+
 // ----- Function hooks -----
 
 __declspec(naked) void HOOK_drawDistance_NAKED()

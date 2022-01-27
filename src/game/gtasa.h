@@ -18,6 +18,7 @@ namespace GTA_SA {
 
 	float getFPS();
 	float getDelta();
+	HWND getHwnd();
 
 	// ----- GTA_SA Functions -----
 

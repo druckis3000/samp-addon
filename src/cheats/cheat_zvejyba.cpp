@@ -61,7 +61,7 @@ namespace CheatZvejyba {
 	// ----- Private functions -----
 
 	void toggleAfk();
-	void pullFish();
+	
 	void throwAgain();
 	void updateFishCount(int c);
 }
