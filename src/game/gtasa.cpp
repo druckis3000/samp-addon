@@ -198,3 +198,22 @@ void CCamera::setCamZAngle(float zAngle)
 {
 	*(float*)0xB6F258 = zAngle;
 }
+
+/** If vecScreen[2] < 1.0f then it's behind camera (culled) */
+void CCamera::calcScreenCoords(float *vecWorld, float *vecScreen)
+{
+	// View matrix
+	float *m = (float*)(0xB6FA2C);
+
+	vecScreen[0] = (vecWorld[2] * m[8]) + (vecWorld[1] * m[4]) + (vecWorld[0] * m[0]) + m[12];
+	vecScreen[1] = (vecWorld[2] * m[9]) + (vecWorld[1] * m[5]) + (vecWorld[0] * m[1]) + m[13];
+	vecScreen[2] = (vecWorld[2] * m[10]) + (vecWorld[1] * m[6]) + (vecWorld[0] * m[2]) + m[14];
+
+	// Display resolution
+	DWORD dWidth = *((DWORD*)(0xC17044));
+	DWORD dHeight = *((DWORD*)(0xC17048));
+
+	float zInv = (float)1.0 / vecScreen[2];
+	vecScreen[0] *= (zInv * (float)dWidth);
+	vecScreen[1] *= (zInv * (float)dHeight);
+}

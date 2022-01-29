@@ -35,6 +35,7 @@ namespace CCamera {
 	float getCamZAngle();
 	void setCamXAngle(float xAngle);
 	void setCamZAngle(float yAngle);
+	void calcScreenCoords(float *vecWorld, float *vecScreen);
 }
 
 // ----- GTA_SA Enums -----
