@@ -1,7 +1,7 @@
 # SA-MP Addon
 ## Compatible with most recent SA-MP 0.3.7 R4-2 version
 
-This addon adds various San Andreas patches and additional features in order to make game easier and more enjoyable.
+This addon adds various San Andreas patches and additional features in order to make game easier and more entertaining.
 
 ## Features
 
@@ -17,6 +17,8 @@ This addon adds various San Andreas patches and additional features in order to 
 - ALT+TAB without pause (/afk command for toggling)
 
 It also contains few cheats/bots made specifically for one server that I used to play. Shouldn't be interesting for others, but I didn't bothered removing them, might still be useful someday.
+
+Short video of features demonstration: https://youtu.be/pXdDJU7njDw
 
 ## Compiling
 
