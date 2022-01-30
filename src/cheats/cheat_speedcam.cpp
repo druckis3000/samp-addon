@@ -58,14 +58,14 @@ namespace CheatAntiSpeedcam {
 void CheatAntiSpeedcam::setupCheat()
 {
 	#ifdef LOG_VERBOSE
-		Log("cheat_matuoklis.cpp: Register /zrib command");
+		Log("cheat_speedcam.cpp: Register /zasc command");
 	#endif
 
 	// Register /zrib command
-	addClientCommand("zrib", (CMDPROC)CheatAntiSpeedcam::toggleOrChangeSpeedLimit);
+	SAMP::addClientCommand("zasc", (CMDPROC)CheatAntiSpeedcam::toggleOrChangeSpeedLimit);
 
 	#ifdef LOG_VERBOSE
-		Log("cheat_matuoklis.cpp: Loading settings");
+		Log("cheat_speedcam.cpp: Loading settings");
 	#endif
 
 	g_byteAntiSpeedCamEnabled = g_byteAntiSpeedCamSetting = Settings::getInt("settings", "antiSpeedCam", 0);

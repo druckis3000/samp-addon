@@ -8,9 +8,6 @@
 #include <cmath>
 #include <thread>
 
-// For debugging
-//#define ENABLE_DEBUG_INFO
-
 namespace CheatESP {
 
 	// ----- Private constants -----
@@ -42,7 +39,7 @@ void CheatESP::setupCheat()
 		Log("cheat_esp.cpp: registering /zesp command");
 	#endif
 
-	addClientCommand("zesp", []{
+	SAMP::addClientCommand("zesp", []{
 		// Toogle esp
 		CheatESP::bESPon = !CheatESP::bESPon;
 
@@ -63,7 +60,7 @@ void CheatESP::setupCheat()
 	#endif
 
 	// Register /znt command
-	addClientCommand("znt", []{
+	SAMP::addClientCommand("znt", []{
 		// Toogle nametag status
 		float f1;
 		bool b1, nametagStatus;
@@ -81,7 +78,7 @@ void CheatESP::setupCheat()
 	#endif
 
 	// Register /zab command
-	addClientCommand("zab", []{
+	SAMP::addClientCommand("zab", []{
 		// Toggle aimbot
 		CheatESP::bAimOn = !CheatESP::bAimOn;
 

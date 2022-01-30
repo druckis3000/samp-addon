@@ -11,6 +11,8 @@ namespace AddonRacecam {
 
 	// ----- Private variables -----
 
+	FHook renderHook;
+
 	volatile bool bRacecamEnabled = false;
 	volatile bool bApplyRacecam = false;
 
@@ -21,13 +23,13 @@ namespace AddonRacecam {
 	// ----- Private functions -----
 
 	void calculateCamera();
+	void HOOK_render();
+
+	static float GetZAngleForPoint(float p[]);
+	static void SmoothAngles(float *in, float power);
+	static void FixRadian(float *in);
 };
 
-static float GetZAngleForPoint(float p[]);
-static void SmoothAngles(float *in, float power);
-static void FixRadian(float *in);
-
-FHook renderHook;
 __declspec(naked) void HOOK_render_NAKED(); 
 
 void AddonRacecam::setupAddon()
@@ -47,11 +49,11 @@ void AddonRacecam::setupAddon()
 	#endif
 
 	// Register /zrc command
-	addClientCommand("zrc", []{
+	SAMP::addClientCommand("zrc", []{
 		bRacecamEnabled = !bRacecamEnabled;
 
-		if(bRacecamEnabled) GTA_SA::addMessage((const char*)"Racecam~n~~g~Ijungta", 2000, 0, false);
-		else GTA_SA::addMessage((const char*)"Racecam~n~~r~Isjungta", 2000, 0, false);
+		if(bRacecamEnabled) GTA_SA::addMessage((const char*)"Racecam: ~g~on", 2000, 0, false);
+		else GTA_SA::addMessage((const char*)"Racecam: ~r~off", 2000, 0, false);
 	});
 
 	#ifdef LOG_VERBOSE
@@ -134,7 +136,7 @@ void AddonRacecam::calculateCamera()
 	CCamera::setCamZAngle(angles[0]);
 }
 
-void HOOK_render()
+void AddonRacecam::HOOK_render()
 {
 	if(AddonRacecam::bApplyRacecam)
 		AddonRacecam::calculateCamera();
@@ -143,12 +145,12 @@ void HOOK_render()
 __declspec(naked) void HOOK_render_NAKED()
 {
 	__asm("pushal");
-	HOOK_render();
+	AddonRacecam::HOOK_render();
 	__asm("popal");
 	__asm("ret");
 }
 
-static void SmoothAngles(float *in, float power)
+static void AddonRacecam::SmoothAngles(float *in, float power)
 {
 	float currentZAngle = *(float*)0xB6F258;
 	float currentXAngle = *(float*)0xB6F248;
@@ -167,7 +169,7 @@ static void SmoothAngles(float *in, float power)
 	FixRadian(in);
 }
 
-static void FixRadian(float *in)
+static void AddonRacecam::FixRadian(float *in)
 {
 	if(in[0] > 3.14159265359) in[0] -= 6.28318530717958647693;
 	if(in[0] < -3.14159265359) in[0] += 6.28318530717958647693;
@@ -175,25 +177,8 @@ static void FixRadian(float *in)
 	if(in[1] < -3.14159265359) in[1] += 6.28318530717958647693;
 }
 
-static float GetZAngleForPoint(float point[]) {
+static float AddonRacecam::GetZAngleForPoint(float point[]) {
 	float angle = ((float(__cdecl *)(float, float))0x53CC70)(point[0], point[1]) * 57.295776f - 90.0f;
 	while (angle < 0.0f) angle += 360.0f;
-	return angle;
-}
-
-static float getZAngle(float v1[], float v2[])
-{
-	// Calculate direction between local and remote player
-	float fDirectionBetween[3];
-	vect3_vect3_sub(v1, v2, fDirectionBetween);
-	vect3_normalize(fDirectionBetween, fDirectionBetween);
-
-	// Calculate dot product of forward and direction vector
-	//float dot = vect3_dot_product(fLocalForward, fDirectionBetween);
-	float dot = 1.0;
-
-	// Calculate angle
-	float angle = acos(dot);
-
 	return angle;
 }

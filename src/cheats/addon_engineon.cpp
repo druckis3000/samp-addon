@@ -4,7 +4,6 @@
 #include "game/gtasa.h"
 #include "utils/helper.h"
 #include "settings.h"
-#include <windows.h>
 #include <thread>
 
 namespace AddonEngineon {
@@ -19,7 +18,7 @@ namespace AddonEngineon {
 	char szOldInfoTextdrawText[SAMP_MAX_TEXTDRAW_TEXT_LENGTH] = "";
 
 	volatile bool bEngineRestartThreadRunning = false;
-	volatile bool bEngineReStarting = false;
+	volatile bool bEngineStartCaptured = false;
 }
 
 void AddonEngineon::setupAddon()
@@ -28,22 +27,22 @@ void AddonEngineon::setupAddon()
 		Log("addon_engineon.cpp: Registering /zae command");
 	#endif
 
-	addClientCommand("zae", []{
+	SAMP::addClientCommand("zae", []{
 		#ifdef LOG_VERBOSE
 			Log("addon_engineon.cpp: /zae command called");
 		#endif
 
 		if(bAddonEnabled){
 			// To make sure thread stopped
-			bEngineReStarting = true;
+			bEngineStartCaptured = true;
 		}
 
 		// Toggle
 		bAddonEnabled = !bAddonEnabled;
 
 		// Inform
-		if(bAddonEnabled) GTA_SA::addMessage((const char*)"Auto engine start~n~~g~Ijungtas", 2000, 0, false);
-		else GTA_SA::addMessage((const char*)"Auto engine start~n~~r~Isjungtas", 2000, 0, false);
+		if(bAddonEnabled) GTA_SA::addMessage((const char*)"Auto engine start: ~g~On", 2000, 0, false);
+		else GTA_SA::addMessage((const char*)"Auto engine start: ~r~off", 2000, 0, false);
 	});
 
 	#ifdef LOG_VERBOSE
@@ -57,31 +56,21 @@ void AddonEngineon::updateAddon()
 {
 	if(!bAddonEnabled) return;
 
-	// Checking for full inventory
 	struct stTextdraw *infoTextdraw = getPlayerTextdraw(INFO_TEXTDRAW_ID);
 	if(infoTextdraw != nullptr){
 		if(strcmp(szOldInfoTextdrawText, infoTextdraw->szText) != 0){
 			// Text have changed, copy new text
 			strcpy(szOldInfoTextdrawText, infoTextdraw->szText);
 			
-			if(strstr(szOldInfoTextdrawText, "Variklis neuzsikur") != 0){
-				// Engine failed to start, start again
-				
-				#ifdef LOG_VERBOSE
-					Log("addon_engineon.cpp: Engine start failed!");
-				#endif
+			if(strstr(szOldInfoTextdrawText, "Variklis neuzsikur") != 0 || strstr(szOldInfoTextdrawText, "Uzgeso varikl")){
+				// Engine failed to start, or stopped during crash, start it
 
 				// Set thread running flag
 				bEngineRestartThreadRunning = true;
 
 				std::thread runAsync([=]{
-				
-					#ifdef LOG_VERBOSE
-						Log("addon_engineon.cpp: runAsync started");
-					#endif
-
-					// Press left mouse button until engine start is trigerred
-					while(!bEngineReStarting){
+					// Press left mouse button until engine start is captured
+					while(!bEngineStartCaptured){
 						// Hide dialog if there's any visible
 						bool dialogHidden = false;
 						if(isSampDialogActive()){
@@ -93,23 +82,15 @@ void AddonEngineon::updateAddon()
 							Sleep(125);
 							dialogHidden = true;
 						}else{
-							// Random delay after being informed
-							Sleep(15);
+							// Random delay after being informed about engine start failure
+							Sleep(50);
 						}
-
-						#ifdef LOG_VERBOSE
-							Log("addon_engineon.cpp: Click LMB");
-						#endif
 
 						mouseClick(LEFT_MOUSE_BUTTON, 200);
 
 						if(dialogHidden){
-							Sleep(20);
-
-							#ifdef LOG_VERBOSE
-								Log("addon_engineon.cpp: Unhide active dialog");
-							#endif
-
+							// If there was dialog shown, show it again
+							Sleep(50);
 							unhideSampDialog();
 						}
 
@@ -117,25 +98,17 @@ void AddonEngineon::updateAddon()
 					}
 
 					// Reset engine restarting flag after successful mouse click
-					bEngineReStarting = false;
+					bEngineStartCaptured = false;
 
 					// Thread finished
 					bEngineRestartThreadRunning = false;
-
-					#ifdef LOG_VERBOSE
-						Log("addon_engineon.cpp: runAsync finished");
-					#endif
 				});
 				runAsync.detach();
 			}
 		}else if(strstr(szOldInfoTextdrawText, "vedineji") != 0 && strstr(szOldInfoTextdrawText, "varikl") != 0){
-			if(bEngineRestartThreadRunning && !bEngineReStarting){
-				#ifdef LOG_VERBOSE
-					Log("addon_engineon.cpp: LMB captured!");
-				#endif
-
-				// Mouse click captured, engine starting again
-				bEngineReStarting = true;
+			if(bEngineRestartThreadRunning && !bEngineStartCaptured){
+				// LMB click captured, engine starting again
+				bEngineStartCaptured = true;
 			}
 		}
 	}

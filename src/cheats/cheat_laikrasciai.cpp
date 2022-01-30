@@ -86,12 +86,12 @@ void CheatLaikrasciai::setupCheat()
 		Log("cheat_laikrasciai.cpp: Registering /zlr command");
 	#endif
 
-	addClientCommand("zlr", []{
+	SAMP::addClientCommand("zlr", []{
 		bCheatEnabled = !bCheatEnabled;
 
 		// Inform player about current cheat state
-		if(bCheatEnabled) GTA_SA::addMessage((const char*)"Laikrasciai~n~~g~Ijungtas", 2000, 0, false);
-		else GTA_SA::addMessage((const char*)"Laikrasciai~n~~r~Isjungtas", 2000, 0, false);
+		if(bCheatEnabled) GTA_SA::addMessage((const char*)"Laikrasciai bot: ~g~on", 2000, 0, false);
+		else GTA_SA::addMessage((const char*)"Laikrasciai bot: ~r~off", 2000, 0, false);
 	});
 
 	#ifdef LOG_VERBOSE
@@ -112,7 +112,7 @@ void CheatLaikrasciai::updateCheat()
 			
 			if(strstr(oldInfoTextdrawText, "Ismetei") != 0 && strstr(oldInfoTextdrawText, "laiskus") != 0){
 				#ifdef LOG_VERBOSE
-					Log("cheat_laikrasciai.cpp: Newspapers dropped, cheat done");
+					Log("cheat_laikrasciai.cpp: Newspaper dropped, cheat done");
 				#endif
 				
 				// Inform player
@@ -138,7 +138,9 @@ void CheatLaikrasciai::onCheckpoint(float x, float y, float z, float size)
 		// House ids are incremented by one, so set waiting checkpoint id to +1
 		waitingForCheckpoint++;
 
-		infoMsgf("got house coordinates");
+		#ifdef LOG_VERBOSE
+			Log("cheat_laikrasciai.cpp: Got house coordinates");
+		#endif
 		
 		// Check if all house locations were found
 		if(targetHouses.find(waitingForCheckpoint) != targetHouses.end()){
@@ -152,9 +154,7 @@ void CheatLaikrasciai::onCheckpoint(float x, float y, float z, float size)
 				sayCommand(buffer);
 				
 				#ifdef LOG_VERBOSE
-					Logf("sent command: /kur %d", waitingForCheckpoint);
-				#else
-					infoMsgf("sent command: /kur %d", waitingForCheckpoint);
+					Logf("cheat_laikrasciai.cpp: sent command: /kur %d", waitingForCheckpoint);
 				#endif
 			}, randDelayTime());
 		}else{
@@ -162,8 +162,6 @@ void CheatLaikrasciai::onCheckpoint(float x, float y, float z, float size)
 			waitingForCheckpoint = 0;
 			#ifdef LOG_VERBOSE
 				Log("cheat_laikrasciai.cpp: Found all houses coordinates");
-			#else
-				infoMsg("cheat_laikrasciai.cpp: Found all houses coordinates");
 			#endif
 			
 			timer.setTimeout([]{
@@ -198,8 +196,6 @@ void CheatLaikrasciai::onMessage(const char *msg, DWORD color)
 		if(indexOfNamus != std::string::npos){
 			#ifdef LOG_VERBOSE
 				Log("cheat_laikrasciai.cpp: Getting house IDs");
-			#else
-				infoMsg("cheat_laikrasciai.cpp: Getting house IDs");
 			#endif
 
 			// Clear target houses map
@@ -239,8 +235,6 @@ void CheatLaikrasciai::onMessage(const char *msg, DWORD color)
 		
 		#ifdef LOG_VERBOSE
 			Logf("cheat_laikrasciai.cpp: Sent /kur %d command", id);
-		#else
-			infoMsgf("cheat_laikrasciai.cpp: Sent /kur %d command", id);
 		#endif
 	}else if(strstr(msg, "Tau liko isvezioti laiskus i siuos namus") != 0){
 		// Reached house checkpoint and there's more houses to visit
@@ -335,8 +329,6 @@ void CheatLaikrasciai::showNextCheckpoint()
 
 	#ifdef LOG_VERBOSE
 		Log("cheat_laikrasciai.cpp: Finding nearest house");
-	#else
-		infoMsg("cheat_laikrasciai.cpp: Finding nearest house");
 	#endif
 	
 	// Get local player position

@@ -15,7 +15,7 @@ namespace HelperCmds {
 	volatile int g_dWeatherFreeze = 2;
 	volatile float g_fDrawDistance = 180;
 
-	char g_szTargetName[32];
+	char szKkurTargetName[32];
 	volatile unsigned int iter = 0;
 
 	// ----- Function declarations -----
@@ -43,11 +43,12 @@ void HelperCmds::registerCmds()
 		Log("helper_cmds.hpp: Registering commands");
 	#endif
 
-	addClientCommand("hack1", testCmd);
-	addClientCommand("i", (CMDPROC)debugPlayer);
-	addClientCommand("lw", (CMDPROC)lockWeather);
-	addClientCommand("dd", (CMDPROC)setDrawDistance);
-	addClientCommand("kkur", (CMDPROC)trackPlayer);
+	SAMP::addClientCommand("zcmds", testCmd);
+	SAMP::addClientCommand("i", (CMDPROC)debugPlayer);
+	SAMP::addClientCommand("lw", (CMDPROC)lockWeather);
+	SAMP::addClientCommand("dd", (CMDPROC)setDrawDistance);
+	SAMP::addClientCommand("kkur", (CMDPROC)trackPlayer);
+	SAMP::addClientCommand("afk", []{ SAMP::toggleAfkMode(); });
 
 	#ifdef LOG_VERBOSE
 		Log("helper_cmds.cpp: Loading settings");
@@ -67,13 +68,13 @@ void HelperCmds::oneSecondTimer()
 		GTA_SA::setDrawDistance(g_fDrawDistance);
 	}
 
-	if(strlen(g_szTargetName) > 0){
+	if(strlen(szKkurTargetName) > 0){
 		// Differentiate name length, to prevent spamming
 		char command[48];
 		if(iter % 2 == 0){
-			sprintf(command, "/kur %s", g_szTargetName);
+			sprintf(command, "/kur %s", szKkurTargetName);
 		}else{
-			sprintf(command, "/kur %.*s", (int)(strlen(g_szTargetName) - 1), g_szTargetName);
+			sprintf(command, "/kur %.*s", (int)(strlen(szKkurTargetName) - 1), szKkurTargetName);
 		}
 		sayCommand(command);
 
@@ -82,6 +83,34 @@ void HelperCmds::oneSecondTimer()
 }
 
 // ----- Custom client commands -----
+
+void HelperCmds::testCmd()
+{
+	#ifdef LOG_VERBOSE
+		Log("helper_cmds.hpp: /zcmds command called");
+	#endif
+
+	infoMsg(0xFF7b68ee, "lsgyvenimas.lt exclusively:");
+	infoMsg(0xFF7b68ee, "/zie - toggle ievent");
+	infoMsg(0xFF7b68ee, "/zae - toogle auto engine on");
+	infoMsg(0xFF7b68ee, "/zlr - toggle newspaper helper");
+	infoMsg(0xFF7b68ee, "/zzv - toggle zvejyba bot");
+	infoMsg(0xFF7b68ee, "/ztd - toggle fish count textdraw");
+	infoMsg(0xFF7b68ee, "/kkur [id/name] - track player (without [id] - stop tracking)");
+	infoMsg(0xFF7b68ee, "-------------------------------------------------------------");
+	infoMsg(0xFF7b68ee, "/zsh [0.0 - 0.2] - set speed hack multiplier value (toggle without [value])");
+	infoMsg(0xFF7b68ee, "/zbh - toggle bunny hop");
+	infoMsg(0xFF7b68ee, "/zqt - toggle quick turn");
+	infoMsg(0xFF7b68ee, "/zasc [speed_limit] - change speed cam limit (without [value] - toggle anti speed cam)");
+	infoMsg(0xFF7b68ee, "/zesp - toggle nametag esp");
+	infoMsg(0xFF7b68ee, "/znt - toggle nametags");
+	infoMsg(0xFF7b68ee, "/zab - toggle aimbot");
+	infoMsg(0xFF7b68ee, "/zrc - toogle racecam");
+	infoMsg(0xFF7b68ee, "/zafk - toggle afk mode");
+	infoMsg(0xFF7b68ee, "/i (id/name) - info about player");
+	infoMsg(0xFF7b68ee, "/lw [0 - 20] - lock weather (without [id] - stop lock)");
+	infoMsg(0xFF7b68ee, "/dd [1 - 3600] - change draw distance (without [value] - default draw distance)");
+}
 
 void HelperCmds::debugPlayer(const char *arg)
 {
@@ -120,12 +149,18 @@ void HelperCmds::lockWeather(const char *arg)
 		Log("helper_cmds.hpp: /lw command called");
 	#endif
 
-	int weatherId = -1;
-	if(isNumber(arg)){
-		// Parse weather id from string in command arg
-		weatherId = strtol(arg, NULL, 10);
+	if(strlen(arg) == 0){
+		infoMsg("Lock weather disabled");
+		g_dWeatherFreeze = -1;
+		return;
 	}
 
+	if(!isNumber(arg)){
+		infoMsg("Usage: /lw [0 - 20]");
+		return;
+	}
+
+	int weatherId = strtol(arg, NULL, 10);
 	if(weatherId == -1){
 		infoMsg("Freeze weather disabled!");
 		g_dWeatherFreeze = weatherId;
@@ -144,7 +179,7 @@ void HelperCmds::setDrawDistance(const char *arg)
 	#endif
 
 	if(strlen(arg) == 0){
-		infoMsg("Draw distance disabled");
+		infoMsg("Draw distance set to default");
 		g_fDrawDistance = 0.0;
 		return;
 	}
@@ -167,7 +202,7 @@ void HelperCmds::trackPlayer(const char *arg)
 	if(strlen(arg) == 0){
 		// Clear target name and tracking will be stopped
 		infoMsg("Tracking finished!");
-		memset(&g_szTargetName[0], 0, 32);
+		memset(&szKkurTargetName[0], 0, 32);
 		return;
 	}
 
@@ -183,7 +218,7 @@ void HelperCmds::trackPlayer(const char *arg)
 	
 	if(strlen(targetName) > 0){
 		// Copy target name to global string
-		strcpy(g_szTargetName, targetName);
+		strcpy(szKkurTargetName, targetName);
 
 		char msg[64];
 		sprintf(msg, "Tracking %s", targetName);
@@ -195,32 +230,6 @@ void HelperCmds::trackPlayer(const char *arg)
 
 		infoMsg("Failed to get player name!");
 	}
-}
-
-void HelperCmds::testCmd()
-{
-	#ifdef LOG_VERBOSE
-		Log("helper_cmds.hpp: /hack1 command called");
-	#endif
-
-	addToChatWindow(CHAT_TYPE_DEBUG, "Hello! :)", nullptr, 0xFF7b68ee, 0);
-	
-	infoMsg("/zsh - toggle speed hack");
-	infoMsg("/zhh - toggle bunny hop");
-	infoMsg("/zqt - toggle quick turn");
-	infoMsg("/zrib [speed_limit] - toggle radar speed limiter");
-	infoMsg("/zesp - toggle nametag esp");
-	infoMsg("/znt - toggle nametags");
-	infoMsg("/zab - toggle aimbot");
-	infoMsg("/zae - toogle auto engine on");
-	infoMsg("/zrc - toogle racecam");
-	infoMsg("/zlr - toggle laikrasciai cheat");
-	infoMsg("/zzv - toggle zvejyba bot");
-	infoMsg("/zie - toggle ievent");
-	infoMsg("/i [id/name] - info about player");
-	infoMsg("/lw [id] - lock weather (without [id] - stop lock)");
-	infoMsg("/dd [distance] - change draw distance (acceptable value: 0 - 3600)");
-	infoMsg("/kkur [id/name] - track player (without [id] - stop tracking)");
 }
 
 // ----- Helper Functions -----

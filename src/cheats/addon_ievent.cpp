@@ -1,5 +1,4 @@
 #include <string>
-#include <iostream>
 
 #include "utils/keycombo.h"
 #include "addon_ievent.h"
@@ -13,15 +12,15 @@ namespace AddonIevent {
 
 	// ----- Private constants -----
 
-	#define IEVENT_KEY_1	0xA0
-	#define IEVENT_KEY_2	0x32
+	#define IEVENT_KEY_1	0xA0 // L-Shift
+	#define IEVENT_KEY_2	0x32 // 2
 
 	struct KeyCombo iEventKeyCombo;
 
 	// ----- Private variables -----
 	
-	volatile bool g_bCheatEnabled = false;
-	int g_iCurrentEvent = -1;
+	volatile bool bCheatEnabled = false;
+	int iCurrentEvent = -1;
 };
 
 void AddonIevent::setupAddon()
@@ -37,24 +36,24 @@ void AddonIevent::setupAddon()
 		Log("addon_ievent.cpp: Registering /zie command");
 	#endif
 
-	addClientCommand("zie", []{
-		g_bCheatEnabled = !g_bCheatEnabled;
+	SAMP::addClientCommand("zie", []{
+		bCheatEnabled = !bCheatEnabled;
 
 		// Inform player about current addon state
-		if(g_bCheatEnabled) GTA_SA::addMessage((const char*)"IEvent~n~~g~Ijungtas", 2000, 0, false);
-		else GTA_SA::addMessage((const char*)"IEvent~n~~r~Isjungtas", 2000, 0, false);
+		if(bCheatEnabled) GTA_SA::addMessage((const char*)"IEvent: ~g~on", 2000, 0, false);
+		else GTA_SA::addMessage((const char*)"IEvent: ~r~off", 2000, 0, false);
 	});
 
 	#ifdef LOG_VERBOSE
 		Log("addon_event.cpp: Loading settings");
 	#endif
 
-	g_bCheatEnabled = Settings::getBool("lsg", "ieventEnabled", false);
+	bCheatEnabled = Settings::getBool("lsg", "ieventEnabled", false);
 }
 
 void AddonIevent::updateAddon()
 {
-	if(!g_bCheatEnabled) return;
+	if(!bCheatEnabled) return;
 
 	// Skip if chat or scoreboard or dialog is active
 	if(isSampChatInputActive() || isSampScoreboardActive() || isSampDialogActive()) return;
@@ -62,40 +61,40 @@ void AddonIevent::updateAddon()
 	updateKeyCombo(IEVENT_KEY_1, IEVENT_KEY_2, iEventKeyCombo);
 
 	if(isKeyComboPressed(iEventKeyCombo)){
+		#ifdef LOG_VERBOSE
+			Log("addon_ievent.cpp: Detected IEvent key combo");
+		#endif
+
 		// Reset key flags
 		resetKeyStates(iEventKeyCombo);
-
-		#ifdef LOG_VERBOSE
-			Log("addon_ievent.hpp: Key combo pressed");
-		#endif
 		
 		// Skip if there's no event atm
-		if(g_iCurrentEvent == -1){
+		if(iCurrentEvent == -1){
 			#ifdef LOG_VERBOSE
-				Log("addon_ievent.hpp: No event is happening right now");
+				Log("addon_ievent.cpp: No event happening atm");
 			#endif
-
-			infoMsgf("Siuo metu joks eventas nevyksta!");
+			infoMsg("No event happening atm!");
 			return;
 		}
 
-		#ifdef LOG_VERBOSE
-			Log("addon_ievent.hpp: Send /event %d command");
-		#endif
-
 		// Send /event cmd
+		#ifdef LOG_VERBOSE
+			Logf("addon_ievent.cpp: Going to event: %d", iCurrentEvent);
+		#endif
+		infoMsgf("Going to event: %d", iCurrentEvent);
+
 		char cmdBuffer[32];
-		sprintf(cmdBuffer, "/event %d", g_iCurrentEvent);
+		sprintf(cmdBuffer, "/event %d", iCurrentEvent);
 		sayCommand(cmdBuffer);
 
 		// Reset current event id
-		g_iCurrentEvent = -1;
+		iCurrentEvent = -1;
 	}
 }
 
 void AddonIevent::onMessage(const char *msg, DWORD color)
 {
-	if(!g_bCheatEnabled) return;
+	if(!bCheatEnabled) return;
 
 	std::string strMsg = msg;
 	if(strMsg.rfind(" * ", 0) == 0){
@@ -109,21 +108,21 @@ void AddonIevent::onMessage(const char *msg, DWORD color)
 				if(rasykitePos != std::string::npos){
 					try {
 						int eventNr = std::stoi(strMsg.substr(rasykitePos + 7));
-						g_iCurrentEvent = eventNr;
+						iCurrentEvent = eventNr;
 						#ifdef LOG_VERBOSE
-							Logf("addon_ievent.hpp: Got event id: %d", g_iCurrentEvent);
+							Logf("addon_ievent.hpp: Got event id: %d", iCurrentEvent);
 						#endif
 					}catch(...){
 						// Failed..
 						#ifdef LOG_VERBOSE
 							Logf("addon_ievent.hpp: Failed to acquire event id");
 						#endif
-						g_iCurrentEvent = -1;
+						iCurrentEvent = -1;
 					}
 
-					if(g_iCurrentEvent > -1){
+					if(iCurrentEvent > -1){
 						// Inform player about event
-						GTA_SA::addMessage((const char*)"I event? Q+2", 2000, 0, false);
+						GTA_SA::addMessage((const char*)"I event? LShift+2", 2000, 0, false);
 						
 						#ifdef LOG_VERBOSE
 							Log("addon_ievent.hpp: Player informed!");
@@ -136,15 +135,17 @@ void AddonIevent::onMessage(const char *msg, DWORD color)
 
 	if(strMsg.rfind(" * ", 0) == 0){
 		if(strMsg.find("Eventas pilnas dalyvi") != std::string::npos){
-			g_iCurrentEvent = -1;
 			#ifdef LOG_VERBOSE
-				Log("addon_ievent.hpp: Event full!");
+				Log("Event is full, resetting iCurrentEvent");
 			#endif
+			infoMsgf("Event %d is full", iCurrentEvent);
+			iCurrentEvent = -1;
 		}else if(strMsg.rfind("Eventas nutrauktas") != std::string::npos){
-			g_iCurrentEvent = -1;
 			#ifdef LOG_VERBOSE
-				Log("addon_ievent.hpp: Event cancelled!");
+				Log("Event cancelled, resetting iCurrentEvent");
 			#endif
+			infoMsgf("Event %d cancelled!", iCurrentEvent);
+			iCurrentEvent = -1;
 		}
 	}
 }

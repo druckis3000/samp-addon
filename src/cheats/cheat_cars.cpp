@@ -4,8 +4,6 @@
 #include "game/gtasa.h"
 #include "game/vecmath.h"
 #include "utils/helper.h"
-#include <windows.h>
-#include <cstdlib>
 
 namespace CheatSpeed {
 
@@ -38,13 +36,13 @@ void CheatSpeed::setupCheat()
 		Log("cheat_speed.hpp: Registering commands");
 	#endif
 	
-	addClientCommand("zsh", (CMDPROC)toggleSpeedHack);
-	addClientCommand("zhh", (CMDPROC)toggleHopHack);
-	addClientCommand("zqt", []{
+	SAMP::addClientCommand("zsh", (CMDPROC)toggleSpeedHack);
+	SAMP::addClientCommand("zbh", (CMDPROC)toggleHopHack);
+	SAMP::addClientCommand("zqt", []{
 		quick180TurnEnabled = !quick180TurnEnabled;
 
-		if(quick180TurnEnabled) GTA_SA::addMessage((const char*)"Quick 180 Turn~n~~g~Ijungtas", 2000, 0, false);
-		else GTA_SA::addMessage((const char*)"Quick 180 Turn~n~~r~Isjungtas", 2000, 0, false);
+		if(quick180TurnEnabled) GTA_SA::addMessage((const char*)"Quick turn: ~g~on", 2000, 0, false);
+		else GTA_SA::addMessage((const char*)"Quick turn: ~r~off", 2000, 0, false);
 	});
 }
 
@@ -169,7 +167,7 @@ void CheatSpeed::toggleSpeedHack(const char *arg)
 		if(speed == 0.0) CheatSpeed::speed = 0.05;
 		else CheatSpeed::speed = speed;
 
-		GTA_SA::addMessage((const char*)"Greitis pakeistas!", 1500, 0, false);
+		GTA_SA::addMessage((const char*)"Speed changed!", 1500, 0, false);
 	}else{
 		speedHackEnabled = !speedHackEnabled;
 
