@@ -1,14 +1,17 @@
 #include "utils/event.h"
 #include "gtasa.h"
 #include "utils/helper.h"
-#include "hooking.h"
+#include "utils/memfuncs.h"
 #include "samp.h"
-#include "helpers/sampfuncs.h"
+#include "helpers/sampfuncs.hpp"
 
 // ----- gta_sa.exe module vars -----
 
-#define FAR_CLIP_ADDRESS	0x00B7C4F0
-#define FOG_ADDRESS			0x00B7C4F4
+#define FAR_CLIP_ADDRESS		0x00B7C4F0
+#define FOG_ADDRESS				0x00B7C4F4
+#define GTA_HOOK_GAME_PROCESS	0x0053E981
+#define GTA_HOOK_DRAW_DISTANCE	0x0055FCC8
+#define GTA_PATCH_INFINITE_RUN	0x00B7CEE4
 
 namespace GTA_SA {
 
@@ -18,7 +21,6 @@ namespace GTA_SA {
 	// ----- Function hooking -----
 
 	FHook drawDistanceHook;
-	DWORD drawDistanceTargetAddr = 0x0055FCCF;
 
 	// ----- Script related vars -----
 
@@ -36,6 +38,7 @@ namespace GTA_SA {
 // ----- gta_sa.exe function hooks -----
 
 __declspec(naked) void HOOK_drawDistance_NAKED();
+void HOOK_gameProcess();
 
 // ----- gtasa.cpp functions -----
 
@@ -51,16 +54,19 @@ bool GTA_SA::setupSystem()
     } while(hwndGtaSa == NULL);
 
 	// Patch infinite run
-	*(bool*)(0x00B7CEE4) = true;
+	*(bool*)(GTA_PATCH_INFINITE_RUN) = true;
 	Log("Infinite run installed!");
 
 	// Patch to enabled changing drawing distance
-	drawDistanceHook.patchAddress = 0x0055FCC8;
+	drawDistanceHook.patchAddress = GTA_HOOK_DRAW_DISTANCE;
 	drawDistanceHook.hookAddress = (DWORD)HOOK_drawDistance_NAKED;
-	drawDistanceHook.overwriteSize = 5;
+	drawDistanceHook.overwriteSize = 7;
 	MidFuncHook(&drawDistanceHook);
-	writeMemory(0x0055FCCD, 0x90, 2);
 	Log("Draw distance patched!");
+
+	// Hook game process function
+	RedirectCall(GTA_HOOK_GAME_PROCESS, (void*)HOOK_gameProcess);
+
 	return true;
 }
 
@@ -102,6 +108,12 @@ void GTA_SA::loop()
 	}
 }
 
+void HOOK_gameProcess()
+{
+	// Always call samp game proc, otherwise samp will be freezed
+	SAMP::callGameProc();
+}
+
 float GTA_SA::getFPS(){ return GTA_SA::g_fAvgFps; }
 
 float GTA_SA::getDelta(){ return GTA_SA::g_fDeltaTime; }
@@ -131,7 +143,7 @@ __declspec(naked) void HOOK_drawDistance_NAKED()
 	__asm("fld 0x18(%esp)");
 	__asm("jmp *(%0)"
 			:
-			:"m"(GTA_SA::drawDistanceTargetAddr));
+			:"m"(GTA_SA::drawDistanceHook.jmpBackAddress));
 	__asm("nop");
 }
 
