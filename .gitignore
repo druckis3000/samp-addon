@@ -1,5 +1,4 @@
 !build
 build/**
 !build/scr.asi
-!build/scr.ini
 .vscode/**

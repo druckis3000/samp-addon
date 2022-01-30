@@ -5,7 +5,8 @@ This addon adds various San Andreas patches and additional features in order to 
 
 ## Features
 
-- Fast connect (skips SA-MP loading screen)
+- Fast loader (skip SA-MP loading screen)
+- Fast connect (skip 3s delay before connect)
 - No FPS limit
 - FPS counter
 - Lock weather
@@ -15,6 +16,7 @@ This addon adds various San Andreas patches and additional features in order to 
 - Toggle nametags & change max distance of them
 - ESP (it actually just shows nametags through walls)
 - ALT+TAB without pause (/afk command for toggling)
+- Anti speed cam (auto slow down when approaching speed cam)
 
 It also contains few cheats/bots made specifically for one server that I used to play. Shouldn't be interesting for others, but I didn't bothered removing them, might still be useful someday.
 
