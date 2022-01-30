@@ -12,6 +12,7 @@ namespace Settings {
 	bool getBool(std::string section, std::string key, bool defaultValue);
 	int getInt(std::string section, std::string key, int defaultValue);
 	float getFloat(std::string section, std::string key, float defaultValue);
+	std::string getString(std::string section, std::string key, std::string defaultValue);
 };
 
 #endif

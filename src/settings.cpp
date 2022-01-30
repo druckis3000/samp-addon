@@ -40,3 +40,8 @@ float Settings::getFloat(std::string section, std::string key, float defaultValu
 {
 	return settingsIni.GetFloat(section, key, defaultValue);
 }
+
+std::string Settings::getString(std::string section, std::string key, std::string defaultValue)
+{
+	return settingsIni.GetString(section, key, defaultValue);
+}
