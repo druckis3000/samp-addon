@@ -3,7 +3,7 @@
 
 #include "game/gtasa.h"
 #include "game/samp.h"
-#include "sampfuncs.h"
+#include "sampfuncs.hpp"
 #include "settings.h"
 #include <windows.h>
 #include <thread>
@@ -53,8 +53,8 @@ void HelperCmds::registerCmds()
 		Log("helper_cmds.cpp: Loading settings");
 	#endif
 
-	g_dWeatherFreeze = Settings::getInt("settings", "weatherFreeze", 2);
-	g_fDrawDistance = Settings::getFloat("settings", "drawDistance", 500.0f);
+	g_dWeatherFreeze = Settings::getInt("settings", "freezeWeather", -1);
+	g_fDrawDistance = Settings::getFloat("settings", "drawDistance", 0.0f);
 }
 
 void HelperCmds::oneSecondTimer()
@@ -63,7 +63,7 @@ void HelperCmds::oneSecondTimer()
 		GTA_SA::forceWeather(g_dWeatherFreeze);
 	}
 
-	if(g_fDrawDistance != -1.0){
+	if(g_fDrawDistance != 0.0){
 		GTA_SA::setDrawDistance(g_fDrawDistance);
 	}
 
@@ -88,11 +88,16 @@ void HelperCmds::debugPlayer(const char *arg)
 	#ifdef LOG_VERBOSE
 		Log("helper_cmds.hpp: /i command called");
 	#endif
+	
+	updateScoreboardInfo();
 
 	if(strlen(arg) == 0) return;
 
 	int playerId = getPlayerIdx(arg);
-	if(playerId == -1) return;
+	if(playerId == -1){
+		infoMsg("Invalid player ID or name!");
+		return;
+	}
 	
 	// Do something useful with playerId
 
@@ -100,7 +105,7 @@ void HelperCmds::debugPlayer(const char *arg)
 		Log("helper_cmds.hpp: Retrieving remote player information");
 	#endif
 
-	char playerName[32];
+	char playerName[32] = {0x0};
 	getPlayerName(playerId, playerName);
 	//struct stRemotePlayerData *rpData = g_Samp->pPools->pPlayer->pRemotePlayer[playerId]->pPlayerData;
 
@@ -140,12 +145,12 @@ void HelperCmds::setDrawDistance(const char *arg)
 
 	if(strlen(arg) == 0){
 		infoMsg("Draw distance disabled");
-		g_fDrawDistance = -1.0;
+		g_fDrawDistance = 0.0;
 		return;
 	}
 	
 	if(!isNumber(arg)){
-		infoMsg("Usage: /dd [0 - 3600]");
+		infoMsg("Usage: /dd [1 - 3600]");
 		return;
 	}
 
@@ -203,7 +208,7 @@ void HelperCmds::testCmd()
 	infoMsg("/zsh - toggle speed hack");
 	infoMsg("/zhh - toggle bunny hop");
 	infoMsg("/zqt - toggle quick turn");
-	infoMsg("/zrib - toggle radar speed limiter");
+	infoMsg("/zrib [speed_limit] - toggle radar speed limiter");
 	infoMsg("/zesp - toggle nametag esp");
 	infoMsg("/znt - toggle nametags");
 	infoMsg("/zab - toggle aimbot");
