@@ -5,7 +5,7 @@
 #include "game/gtasa.h"
 #include "game/vecmath.h"
 #include "utils/timercpp.h"
-#include "game/helpers/sampfuncs.h"
+#include "game/helpers/sampfuncs.hpp"
 #include "settings.h"
 #include <iostream>
 #include <string.h>

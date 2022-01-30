@@ -1,7 +1,7 @@
 #include "addon_racecam.h"
-#include "game/helpers/sampfuncs.h"
+#include "game/helpers/sampfuncs.hpp"
 #include "game/gtasa.h"
-#include "hooking.h"
+#include "utils/memfuncs.h"
 #include "settings.h"
 #include <math.h>
 

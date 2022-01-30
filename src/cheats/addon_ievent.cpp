@@ -3,7 +3,7 @@
 
 #include "utils/keycombo.h"
 #include "addon_ievent.h"
-#include "game/helpers/sampfuncs.h"
+#include "game/helpers/sampfuncs.hpp"
 #include "game/samp.h"
 #include "utils/event.h"
 #include "game/gtasa.h"

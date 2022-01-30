@@ -2,7 +2,7 @@
 #include "utils/helper.h"
 #include "game/samp.h"
 #include "utils/event.h"
-#include "game/helpers/sampfuncs.h"
+#include "game/helpers/sampfuncs.hpp"
 #include "utils/keycombo.h"
 #include "game/gtasa.h"
 #include "settings.h"
@@ -281,7 +281,7 @@ void CheatZvejyba::toggleAfk()
 		// Don't pause when in ESC menu
 		memset((BYTE*)0x74542B, 0x90, 8);
 		// Keep SAMP working when not in focus
-		//memset((BYTE*)0x53EA88, 0x90, 6);
+		memset((BYTE*)0x53EA88, 0x90, 6);
 
 		// Disable menu after alt-tab
 		//memset((BYTE*)0x53BC78, 0x00, 1);
@@ -305,7 +305,7 @@ void CheatZvejyba::toggleAfk()
 
 		// Reset overwritten memory
 		memcpy((BYTE*)0x74542B, "\x50\x51\xFF\x15\x00\x83\x85\x00", 8);
-		//memcpy((BYTE*)0x53EA88, "\x0F\x84\x7B\x01\x00\x00", 6);
+		memcpy((BYTE*)0x53EA88, "\x0F\x84\x7B\x01\x00\x00", 6);
 		memcpy((BYTE*)0x748A8D, "\x0F\x84\x20\x03\x00\x00", 6);
 
 		// Wait until samp hides cursor itself after typing /afk command

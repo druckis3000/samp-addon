@@ -1,6 +1,6 @@
 #include "cheat_cars.h"
 #include "game/samp.h"
-#include "game/helpers/sampfuncs.h"
+#include "game/helpers/sampfuncs.hpp"
 #include "game/gtasa.h"
 #include "game/vecmath.h"
 #include "utils/helper.h"

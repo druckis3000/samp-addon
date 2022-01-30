@@ -1,6 +1,6 @@
 #include "addon_engineon.h"
 #include "game/samp.h"
-#include "game/helpers/sampfuncs.h"
+#include "game/helpers/sampfuncs.hpp"
 #include "game/gtasa.h"
 #include "utils/helper.h"
 #include "settings.h"
