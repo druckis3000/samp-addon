@@ -70,7 +70,7 @@ namespace SAMP {
 	TQueue<struct stOnDialogResponseParams> g_OnDialogResponseQueue;
 
 	// Used for invoking scoreboard update callbacks in main thread
-	volatile bool g_bUpdateScoreboard = false;
+	volatile bool bUpdateScoreboard = false;
 
 	// Used for processing toggleCursor function call in main thread
 	volatile struct stToggleCursor g_CursorToggleInfo = {0, true, true};
@@ -82,7 +82,10 @@ namespace SAMP {
 	bool bScoreboardUpdated = false;
 
 	// For list dialog selector with keyboard numbers
-	bool numberKeysState[9] = {};
+	bool bNumberKeyStates[9] = {};
+
+	// Used for toggling afk mode
+	bool bAfkEnabled = false;
 
 	// ----- Private function declarations -----
 
@@ -222,12 +225,12 @@ void SAMP::loop()
 		if(g_Dialog->iType == DIALOG_STYLE_LIST || g_Dialog->iType == DIALOG_STYLE_TABLIST){
 			for(int i=0; i<9; i++){
 				if(GetAsyncKeyState(0x31 + i) & 0x8000){
-					if(numberKeysState[i] == false){
-						numberKeysState[i] = true;
+					if(bNumberKeyStates[i] == false){
+						bNumberKeyStates[i] = true;
 						setDialogSelectedItemIndex(i);
 					}
 				}else{
-					numberKeysState[i] = false;
+					bNumberKeyStates[i] = false;
 				}
 			}
 		}
@@ -272,9 +275,9 @@ void SAMP::loop()
 			free(queueDialogResponse);
 		}
 
-		if(g_bUpdateScoreboard){
+		if(bUpdateScoreboard){
 			invokeOnScoreboardUpdateCallbacks();
-			g_bUpdateScoreboard = false;
+			bUpdateScoreboard = false;
 		}
 	}
 }
@@ -358,7 +361,7 @@ void onScoreboardUpdate()
 {
 	if(g_Samp == nullptr || g_Samp->pPools == nullptr || g_Samp->pPools->pPlayer == nullptr) return;
 
-	g_bUpdateScoreboard = true;
+	bUpdateScoreboard = true;
 }
 
 __declspec(naked) void HOOK_onScoreboardUpdate_NAKED()
@@ -563,7 +566,7 @@ __declspec(naked) void HOOK_wndProc_NAKED()
 
 // ----- samp.dll functions -----
 
-void addClientCommand(const char *cmdName, CMDPROC functionPtr)
+void SAMP::addClientCommand(const char *cmdName, CMDPROC functionPtr)
 {
 	if(g_Input == nullptr) return;
 	
@@ -571,7 +574,7 @@ void addClientCommand(const char *cmdName, CMDPROC functionPtr)
 	reinterpret_cast<void(__thiscall *)(void *_this, const char *command, CMDPROC function)>(g_SampBaseAddress + SAMP_FUNC_ADDCLIENTCMD)(g_Input, cmdName, functionPtr);
 }
 
-void toggleSampCursor(int cursorMode, bool immediatelyHideCursor, bool executeInMainThread)
+void SAMP::toggleSampCursor(int cursorMode, bool immediatelyHideCursor, bool executeInMainThread)
 {
 	if(g_Misc == nullptr) return;
 	
@@ -584,6 +587,60 @@ void toggleSampCursor(int cursorMode, bool immediatelyHideCursor, bool executeIn
 	}else{
 		reinterpret_cast<void(__thiscall *)(void *_this, int, bool)>(g_SampBaseAddress + SAMP_FUNC_TOGGLECURSOR)(g_Misc, cursorMode, immediatelyHideCursor);
 	}
+}
+
+void SAMP::toggleAfkMode()
+{
+	bAfkEnabled = !bAfkEnabled;
+
+	if(bAfkEnabled){
+		#ifdef LOG_VERBOSE
+			Log("samp.cpp: Enabling AFK mode");
+		#endif
+
+		// Don't pause when in ESC menu
+		memset((BYTE*)0x74542B, 0x90, 8);
+		// Keep SAMP working when not in focus
+		memset((BYTE*)0x53EA88, 0x90, 6);
+
+		// Disable menu after alt-tab
+		//memset((BYTE*)0x53BC78, 0x00, 1);
+
+		// ALLOW ALT+TABBING WITHOUT PAUSING
+		memset((BYTE*)0x748A8D, 0x90, 6);
+		//injector::MakeJMP(0x6194A0, AllowMouseMovement, true);
+		//writeMemory(0x6194A0, 0x90, 6);
+		
+		// Wait until samp hides cursor after typing /afk command
+		Sleep(200);
+		
+		// Show cursor, so that input actions done not in GTA window will not be processed by GTA
+		toggleSampCursor(2, false, true);
+		
+		showGameText("AFK system~n~~g~On", 2000, 0);
+	}else{
+		#ifdef LOG_VERBOSE
+			Log("samp.cpp: Disabling AFK mode");
+		#endif
+
+		// Reset overwritten memory
+		memcpy((BYTE*)0x74542B, "\x50\x51\xFF\x15\x00\x83\x85\x00", 8);
+		memcpy((BYTE*)0x53EA88, "\x0F\x84\x7B\x01\x00\x00", 6);
+		memcpy((BYTE*)0x748A8D, "\x0F\x84\x20\x03\x00\x00", 6);
+
+		// Wait until samp hides cursor itself after typing /afk command
+		Sleep(200);
+		
+		// Hide cursor
+		toggleSampCursor(0, true, true);
+		
+		showGameText("AFK system~n~~r~Off", 2000, 0);
+	}
+}
+
+bool SAMP::isAfkModeEnabled()
+{
+	return bAfkEnabled;
 }
 
 // ----- Private functions -----

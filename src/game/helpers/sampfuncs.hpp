@@ -613,7 +613,7 @@ static void unhideSampDialog()
 	g_Dialog->iIsActive = true;
 
 	// Show cursor
-	toggleSampCursor(2, false, false);
+	SAMP::toggleSampCursor(2, false, false);
 }
 
 /**

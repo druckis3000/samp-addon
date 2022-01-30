@@ -993,16 +993,16 @@ namespace SAMP {
 	const DWORD getSampDllHandle();
 
 	// ----- samp.dll -----
+
 	void callGameProc();
+	void addClientCommand(const char *cmdName, CMDPROC functionPtr);
+
+	// ----- User interface
+
+	void toggleSampCursor(int cursorMode, bool bImmediatelyHideCursor, bool bProcessInMainThread);
+	void toggleAfkMode();
+	bool isAfkModeEnabled();
 }
-
-// ----- samp.dll Functions -----
-
-// ----- Client/Game
-void addClientCommand(const char *cmdName, CMDPROC functionPtr);
-
-// ----- User interface
-void toggleSampCursor(int cursorMode, bool bImmediatelyHideCursor, bool bProcessInMainThread);
 
 // ----- samp.dll Global var declarations -----
 
