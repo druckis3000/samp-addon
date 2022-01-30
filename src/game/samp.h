@@ -440,8 +440,8 @@ struct stTextdrawPool
 	struct stPlayerPool
 	{
 		int						iLocalPlayerScore;		// 0
-		uint16_t				sLocalPlayerID;			// 8
-		int						iUnk;					// 4
+		uint16_t				sLocalPlayerID;			// 4
+		int						iUnk;					// 6
 		
 		// After four zero bytes there's player name
 		union											// 10
@@ -463,8 +463,7 @@ struct stTextdrawPool
 		DWORD					dwPlayerIP[SAMP_MAX_PLAYERS];
 		struct stRemotePlayer	*pRemotePlayer[SAMP_MAX_PLAYERS];
 
-		// After pLocalPlayer there's 00 00 00 00
-		void					*pVTBL_txtHandler;		// 42 (nullptr)
+		void					*pVTBL_txtHandler;
 	};
 
 #endif
@@ -991,6 +990,7 @@ namespace SAMP {
 	bool setupSystem();
 	void loop();
 	void oneSecondTimer();
+	const DWORD getSampDllHandle();
 
 	// ----- samp.dll -----
 	void callGameProc();
@@ -998,41 +998,11 @@ namespace SAMP {
 
 // ----- samp.dll Functions -----
 
-// ----- Messagging
-void infoMsg(const char *text);
-void infoMsg(DWORD color, const char *text);
-void infoMsgf(const char *fmt, ...);
-void infoMsgf(DWORD color, const char *fmt, ...);
-void addToChatWindow(ChatMessageType msgType, const char *text, const char *prefix, DWORD textColor, DWORD prefixColor);
-void say(const char *text);
-void sayCommand(const char *cmd);
-
 // ----- Client/Game
 void addClientCommand(const char *cmdName, CMDPROC functionPtr);
-void updateScoreboardInfo();
-void setCheckpoint(float *xyz, float size);
-void showGameText(const char *text, unsigned int time, unsigned int style);
-void setWorldWeather(char weather);
-void restartGame();
-
-// ----- Players
-void setPlayerColor(int playerId, DWORD color);
-void setMarkerState(struct stRemotePlayer *rPlayer, int state);
-DWORD getPlayerColorRGBA(int playerId);
-DWORD getPlayerColorARGB(int playerId);
 
 // ----- User interface
 void toggleSampCursor(int cursorMode, bool bImmediatelyHideCursor, bool bProcessInMainThread);
-bool isToggleCursorProcessed();
-void showSampScoreboard();
-void closeSampScoreboard(bool bHideCursor);
-void showSampChatInput();
-void closeSampChatInput();
-void showSampDialog(int iId, int iType, const char *szCaption, const char *szText, const char *szLeftButton, const char *szRightButton, int iServerside);
-void drawSampDialog();
-void hideSampDialog();
-void unhideSampDialog();
-void closeSampDialog(char bProcessButton);
 
 // ----- samp.dll Global var declarations -----
 
