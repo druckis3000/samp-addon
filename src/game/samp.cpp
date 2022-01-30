@@ -2,17 +2,15 @@
 #include "gtasa.h"
 
 #include "utils/helper.h"
-#include "hooking.h"
+#include "utils/memfuncs.h"
 #include "vecmath.h"
 #include "utils/event.h"
 #include "utils/tqueue.h"
 
-#include "helpers/sampfuncs.h"
+#include "helpers/sampfuncs.hpp"
 #include "helpers/helper_cmds.hpp"
 #include "helpers/fpsdelimiter.hpp"
 #include "utils/timercpp.h"
-
-#include "cheats/cheat_zvejyba.h"
 
 #include <windows.h>
 #include <string>
@@ -77,14 +75,11 @@ namespace SAMP {
 	// Used for processing toggleCursor function call in main thread
 	volatile struct stToggleCursor g_CursorToggleInfo = {0, true, true};
 
-	// For anti spamming
-	double lastSayCommandTime = 0.0;
-	double lastSayTime = 0.0;
-	char lastSayText[512];
-	char lastSayCommandText[512];
-
 	// For testing and debugging
 	bool isKey2Pressed = true;
+
+	// Update scoreboard for /i local command
+	bool bScoreboardUpdated = false;
 
 	// For list dialog selector with keyboard numbers
 	bool numberKeysState[9] = {};
@@ -181,12 +176,12 @@ bool SAMP::setupSystem()
 	Log("Anti-crash ready!");
 
 	// Fast connect
-	DWORD address = FindPattern((char*)SAMP_PATCH_FAST_CONNECT, (char*)"xxxxxx") + 0x1;
-	writeMemory(address, 0x0, 4);
+	DWORD address = FindPattern(g_SampBaseAddress, (char*)SAMP_PATCH_FAST_CONNECT, (char*)"xxxxxx") + 0x1;
+	writeMemory(address, (BYTE)0x0, 4);
 	Log("Fast connect ready!");
 
 	// Unlimited fps
-	disableFPSLock();
+	disableFPSLock(g_SampBaseAddress);
 
 	// Add own commands
 	HelperCmds::registerCmds();
@@ -206,10 +201,17 @@ void SAMP::loop()
 {
 	if(!g_IsSampReady) return;
 
+	// Needed for /i command
+	if(g_Samp->iGameState == GAME_STATE_PLAYING && !bScoreboardUpdated){
+		updateScoreboardInfo();
+		bScoreboardUpdated = true;
+	}
+
 	if(GetAsyncKeyState(VK_NUMPAD2) & 0x8000){
 		if(!isKey2Pressed){
 			// Do something
 			isKey2Pressed = true;
+			
 		}
 	}else{
 		isKey2Pressed = false;
@@ -286,6 +288,11 @@ void SAMP::callGameProc()
 {
 	if(g_SampBaseAddress != 0)
 		reinterpret_cast<void(*)()>(g_SampBaseAddress + SAMP_FUNC_GAME_PROC)();
+}
+
+const DWORD SAMP::getSampDllHandle()
+{
+	return g_SampBaseAddress;
 }
 
 // ----- Hooked functions -----
@@ -556,101 +563,6 @@ __declspec(naked) void HOOK_wndProc_NAKED()
 
 // ----- samp.dll functions -----
 
-void say(const char *text)
-{
-	if(g_Samp == nullptr) return;
-	
-	// Prevent spamming
-	double currentTime = GetTimeMillis();
-	if(currentTime - lastSayTime < 0.6){
-		Log("scr.asi wants to spam... :(( [0x3]");
-		infoMsg("scr.asi wants to spam... :(( [0x3]");
-		return;
-	}
-
-	// Prevent spamming
-	if(strcmp(lastSayText, text) == 0){
-		Log("scr.asi wants to spam... :(( [0x4]");
-		infoMsg("scr.asi wants to spam... :(( [0x4]");
-		return;
-	}
-
-	// Update anti-spam info
-	lastSayTime = currentTime;
-	strcpy(lastSayText, text);
-
-	reinterpret_cast<void(__thiscall *)(void *, const char *)>(g_SampBaseAddress + SAMP_FUNC_SAY)(g_Samp, text);
-}
-
-void sayCommand(const char *cmd)
-{
-	if(g_Input == nullptr) return;
-	
-	// Prevent spamming
-	double currentTime = GetTimeMillis();
-	if(currentTime - lastSayCommandTime < 0.6){
-		Log("scr.asi wants to spam... :(( [0x1]");
-		infoMsg("scr.asi wants to spam... :(( [0x1]");
-		return;
-	}
-	
-	// Prevent spamming
-	/*if(strcmp(lastSayCommandText, cmd) == 0){
-		Log("scr.asi wants to spam... :(( [0x2]");
-		infoMsg("scr.asi wants to spam... :(( [0x2]");
-		return;
-	}*/
-
-	// Update anti-spam info
-	lastSayCommandTime = currentTime;
-	strcpy(lastSayCommandText, cmd);
-
-	reinterpret_cast<void(__thiscall *)(void *, const char *)>(g_SampBaseAddress + SAMP_FUNC_SAY_CMD)(g_Input, cmd);
-}
-
-void infoMsg(const char *text)
-{
-	addToChatWindow(CHAT_TYPE_DEBUG, text, nullptr, 0xffffffff, 0);
-}
-
-void infoMsg(DWORD color, const char *text)
-{
-	addToChatWindow(CHAT_TYPE_DEBUG, text, nullptr, color, 0);
-}
-
-void infoMsgf(const char *fmt, ...)
-{
-	va_list argptr;
-	va_start(argptr, fmt);
-	char buffer[512];
-	vsnprintf(buffer, 512, fmt, argptr);
-	va_end(argptr);
-	
-	addToChatWindow(CHAT_TYPE_DEBUG, buffer, nullptr, 0xFFFFFFFF, 0);
-}
-
-void infoMsgf(DWORD color, const char *fmt, ...)
-{
-	va_list argptr;
-	va_start(argptr, fmt);
-	char buffer[512];
-	vsnprintf(buffer, 512, fmt, argptr);
-	va_end(argptr);
-	
-	addToChatWindow(CHAT_TYPE_DEBUG, buffer, nullptr, color, 0);
-}
-
-void addToChatWindow(ChatMessageType msgType, const char *text, const char *prefix, DWORD textColor, DWORD prefixColor)
-{
-	if(g_Chat == nullptr) return;
-
-	if(prefix == nullptr){
-		reinterpret_cast<void(__thiscall *)(void *, ChatMessageType, const char *, const char *, DWORD, DWORD)>(g_SampBaseAddress + SAMP_FUNC_ADDTOCHATWND)(g_Chat, msgType, text, nullptr, textColor, 0);
-	}else{
-		reinterpret_cast<void(__thiscall *)(void *, ChatMessageType, const char *, const char *, DWORD, DWORD)>(g_SampBaseAddress + SAMP_FUNC_ADDTOCHATWND)(g_Chat, msgType, text, prefix, textColor, prefixColor);
-	}
-}
-
 void addClientCommand(const char *cmdName, CMDPROC functionPtr)
 {
 	if(g_Input == nullptr) return;
@@ -672,148 +584,6 @@ void toggleSampCursor(int cursorMode, bool immediatelyHideCursor, bool executeIn
 	}else{
 		reinterpret_cast<void(__thiscall *)(void *_this, int, bool)>(g_SampBaseAddress + SAMP_FUNC_TOGGLECURSOR)(g_Misc, cursorMode, immediatelyHideCursor);
 	}
-}
-
-bool isToggleCursorProcessed()
-{
-	return g_CursorToggleInfo.bProcessed;
-}
-
-void updateScoreboardInfo()
-{
-	if(g_Samp == nullptr) return;
-	reinterpret_cast<void(__thiscall *)(void *)>(g_SampBaseAddress + SAMP_FUNC_UPDATESCOREBOARD)(g_Samp);
-}
-
-void setCheckpoint(float *xyz, float size)
-{
-	if(g_Misc == nullptr) return;
-	reinterpret_cast<void(__thiscall *)(void *_this, float*, float*)>(g_SampBaseAddress + SAMP_FUNC_SETCHECKPOINT)(g_Misc, xyz, &size);
-}
-
-void showGameText(const char *text, unsigned int time, unsigned int style)
-{
-	if(g_Misc == nullptr) return;
-	reinterpret_cast<void(__thiscall *)(void *_this, const char *, unsigned int, unsigned int)>(g_SampBaseAddress + SAMP_FUNC_SHOWGAMETEXT)(g_Misc, text, time, style);
-}
-
-void setWorldWeather(char weather)
-{
-	if(!g_IsSampReady) return;
-	reinterpret_cast<void(__thiscall *)(void *_this, char)>(g_SampBaseAddress + SAMP_FUNC_SETWORLDWEATHER)(g_Samp, weather);
-}
-
-void restartGame()
-{
-	if(!g_IsSampReady) return;
-	reinterpret_cast<void(__thiscall*)(void *_this)>(g_SampBaseAddress + SAMP_FUNC_RESTARTGAME)(g_Samp);
-}
-
-/**
- * @param playerId player id to change color
- * @param color	RGBA Color to set
- */
-void setPlayerColor(int playerId, DWORD color)
-{
-	if(!g_IsSampReady) return;
-
-	//reinterpret_cast<void(__thiscall*)(void *_this, int, DWORD)>(g_SampBaseAddress + SAMP_FUNC_SETPLAYERCOLOR)(nullptr, playerId, color);
-	DWORD *colorTable = (DWORD*)((uint8_t*)(g_SampBaseAddress + SAMP_PTR_COLORS_OFFSET));
-	colorTable[playerId] = color;
-}
-
-void setMarkerState(struct stRemotePlayer *rPlayer, int state)
-{
-	if(!g_IsSampReady) return;
-
-	reinterpret_cast<void(__thiscall*)(void *_this, int)>(g_SampBaseAddress + SAMP_FUNC_SETMARKERSTATE)(rPlayer, state);
-}
-
-/** @return RGBA Color */
-DWORD getPlayerColorRGBA(int playerId)
-{
-	if(!g_IsSampReady) return 0;
-
-	// Make sure player is connected
-	if(!isValidPlayerId(playerId)) return 0;
-
-	//DWORD color = reinterpret_cast<DWORD(__thiscall*)(void *_this, int)>(g_SampBaseAddress + SAMP_FUNC_GETPLAYERCOLOR)(nullptr, playerId);
-	DWORD *colorTable = (DWORD*)((uint8_t*)(g_SampBaseAddress + SAMP_PTR_COLORS_OFFSET));
-	DWORD color = colorTable[playerId];
-	
-	return color;
-}
-
-/** @return ARGB Color, alpha will be FF */
-DWORD getPlayerColorARGB(int playerId)
-{
-	if(!g_IsSampReady) return 0;
-
-	// Make sure player is connected
-	if(!isValidPlayerId(playerId)) return 0;
-
-	//DWORD color = reinterpret_cast<DWORD(__thiscall*)(void *_this, int)>(g_SampBaseAddress + SAMP_FUNC_GETPLAYERCOLOR)(nullptr, playerId);
-	DWORD *colorTable = (DWORD*)((uint8_t*)(g_SampBaseAddress + SAMP_PTR_COLORS_OFFSET));
-	DWORD color = (colorTable[playerId] >> 8) | 0xFF000000;
-
-	return color;
-}
-
-void showSampScoreboard()
-{
-	reinterpret_cast<void(__thiscall*)(void *_this)>(g_SampBaseAddress + SAMP_FUNC_SHOWSCOREBOARD)(g_Scoreboard);
-}
-
-void closeSampScoreboard(bool bHideCursor)
-{
-	reinterpret_cast<void(__thiscall*)(void *_this, bool)>(g_SampBaseAddress + SAMP_FUNC_CLOSESCOREBOARD)(g_Scoreboard, bHideCursor);
-}
-
-void showSampChatInput()
-{
-	reinterpret_cast<void(__thiscall*)(void *_this)>(g_SampBaseAddress + SAMP_FUNC_SHOWCHATINPUT)(g_Input);
-}
-
-void closeSampChatInput()
-{
-	reinterpret_cast<void(__thiscall*)(void *_this)>(g_SampBaseAddress + SAMP_FUNC_CLOSECHATINPUT)(g_Input);
-}
-
-void showSampDialog(int iId, int iType, const char *szCaption, const char *szText, const char *szLeftButton, const char *szRightButton, int iServerside)
-{
-	reinterpret_cast<void(__thiscall*)(void *_this, int, int, const char*, const char*, const char*, const char*, int)>(g_SampBaseAddress + SAMP_FUNC_SHOWDIALOG)(g_Dialog, iId, iType, szCaption, szText, szLeftButton, szRightButton, iServerside);
-}
-
-void unhideSampDialog()
-{
-	// Show dialog
-	*((uint8_t*)g_Dialog->pDialog + 0x13) = 1;
-	g_Dialog->iIsActive = true;
-
-	// Show cursor
-	toggleSampCursor(2, false, false);
-}
-
-/**
- * This function only hides dialog, server will still know
- * that you have unclosed dialog. To truly close dialog, use
- * closeSampDialog(bProcessButton) function.
- * 
- * This function can be useful only for client-side dialogs.
- */
-void hideSampDialog()
-{
-	reinterpret_cast<void(__thiscall*)(void *_this)>(g_SampBaseAddress + SAMP_FUNC_HIDEDIALOG)(g_Dialog);
-}
-
-/**
- * Closes dialog and tells server about it
- * 
- * @param bProcessButton which button was pressed, 0 - right, 1 - left
-*/
-void closeSampDialog(char bProcessButton)
-{
-	reinterpret_cast<void(__thiscall*)(void *_this, char)>(g_SampBaseAddress + SAMP_FUNC_CLOSEDIALOG)(g_Dialog, bProcessButton);
 }
 
 // ----- Private functions -----
