@@ -6,14 +6,14 @@
 #include <thread>
 #include "utils/helper.h"
 #include "main.h"
-#include "hooking.h"
+#include "utils/memfuncs.h"
 #include "game/samp.h"
 #include "game/gtasa.h"
 #include "utils/event.h"
-#include "game/helpers/fastloader.h"
+#include "game/helpers/fastloader.hpp"
 
 #include "cheats/cheat_zvejyba.h"
-#include "cheats/cheat_matuoklis.h"
+#include "cheats/cheat_speedcam.h"
 #include "cheats/cheat_laikrasciai.h"
 #include "cheats/cheat_cars.h"
 #include "cheats/cheat_esp.h"
@@ -31,8 +31,6 @@ namespace Main {
 	
 	volatile bool g_bShouldExit = false;
 }
-
-void HOOK_gameProcess();
 
 void MainThreadFunc()
 {
@@ -62,7 +60,7 @@ void MainThreadFunc()
 	
 	// Setup cheats
 	CheatZvejyba::setupCheat();
-	CheatMatuoklis::setupCheat();
+	CheatAntiSpeedcam::setupCheat();
 	CheatLaikrasciai::setupCheat();
 	CheatSpeed::setupCheat();
 	CheatESP::setupCheat();
@@ -72,9 +70,6 @@ void MainThreadFunc()
 
 	Log("Script ready! Starting main thread");
 
-	// Hook game process function
-	RedirectCall((DWORD)0x53E981, (void*)HOOK_gameProcess);
-
 	while(!Main::g_bShouldExit){
 		// Update gta/samp systems
 		GTA_SA::loop();
@@ -83,7 +78,7 @@ void MainThreadFunc()
 		// Update cheats
 		if(g_Samp != nullptr && g_Samp->pPools != nullptr && g_Samp->pPools->pPlayer != nullptr && g_Samp->pPools->pPlayer->pLocalPlayer != nullptr) {
 			CheatZvejyba::updateCheat();
-			CheatMatuoklis::updateCheat();
+			CheatAntiSpeedcam::updateCheat();
 			CheatLaikrasciai::updateCheat();
 			CheatSpeed::updateCheat();
 			CheatESP::updateCheat();
@@ -104,11 +99,6 @@ void MainThreadFunc()
 	}
 	
 	Log("SCR unloading...");
-}
-
-void HOOK_gameProcess()
-{
-	SAMP::callGameProc();
 }
 
 extern "C" BOOL APIENTRY DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved) {
