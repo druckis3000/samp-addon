@@ -7,7 +7,7 @@ namespace Settings {
 
 	// ----- Public functions -----
 
-	void loadSettings();
+	bool loadSettings();
 
 	bool getBool(std::string section, std::string key, bool defaultValue);
 	int getInt(std::string section, std::string key, int defaultValue);

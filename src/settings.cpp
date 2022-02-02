@@ -7,23 +7,20 @@ namespace Settings {
 	// ----- Private variables -----
 
 	INIReader settingsIni("scr.ini");
-	bool loaded = false;
 };
 
-void Settings::loadSettings()
+bool Settings::loadSettings()
 {
-	#ifdef LOG_VERBOSE
-		Log("settings.cpp: Loading configuration file");
-	#endif
+	Log("settings.cpp: Loading settings file");
 
 	int rc = settingsIni.ParseError();
 	if(rc < 0){
 		Logf("settings.cpp: Failed to load settings file (%d)", rc);
-		loaded = false;
-	}else{
-		Log("settings.cpp: Settings file loaded!");
-		loaded = true;
+		return false;
 	}
+
+	Log("settings.cpp: Settings file loaded!");
+	return true;
 }
 
 bool Settings::getBool(std::string section, std::string key, bool defaultValue)
