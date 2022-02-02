@@ -19,11 +19,4 @@ double GetTimeMillis();
 bool isNumber(const char *s);
 bool findStringIC(const std::string &strHaystack, const std::string &strNeedle);
 
-// ----- Input simulation -----
-
-#define LEFT_MOUSE_BUTTON	0
-#define RIGHT_MOUSE_BUTTON	1
-
-void mouseClick(int btn, int delay);
-
 #endif

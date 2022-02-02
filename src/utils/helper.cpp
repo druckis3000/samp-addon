@@ -52,35 +52,3 @@ bool findStringIC(const std::string & strHaystack, const std::string & strNeedle
 	);
 	return (it != strHaystack.end());
 }
-
-// ----- Input simulation -----
-
-void mouseClick(int btn, int delay)
-{
-	INPUT inputs = {0};
-
-	// Mouse down
-	ZeroMemory(&inputs, sizeof(INPUT));
-	inputs.type = INPUT_MOUSE;
-	switch(btn){
-		case LEFT_MOUSE_BUTTON:
-		{ inputs.mi.dwFlags = MOUSEEVENTF_LEFTDOWN; break; }
-		case RIGHT_MOUSE_BUTTON:
-		{ inputs.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN; break; }
-	}
-	SendInput(1, &inputs, sizeof(INPUT));
-	
-	// Add some delay between input events
-	Sleep(delay);
-	
-	// Mouse up
-	ZeroMemory(&inputs, sizeof(INPUT));
-	inputs.type = INPUT_MOUSE;
-	switch(btn){
-		case LEFT_MOUSE_BUTTON:
-		{ inputs.mi.dwFlags = MOUSEEVENTF_LEFTUP; break; }
-		case RIGHT_MOUSE_BUTTON:
-		{ inputs.mi.dwFlags = MOUSEEVENTF_RIGHTUP; break; }
-	}
-	SendInput(1, &inputs, sizeof(INPUT));
-}
