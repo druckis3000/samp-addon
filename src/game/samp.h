@@ -18,6 +18,7 @@
 #define SAMP_PTR_DIALOG_INFO_OFFSET		0x26E9C8
 #define SAMP_PTR_SCOREBOARD_INFO_OFFSET	0x26E9C4
 #define SAMP_PTR_COLORS_OFFSET			0x1516A0
+#define SAMP_PTR_UNKNOWN				0x26EA18
 
 #if defined(SAMP_VERSION_R4_2)
 	#define SAMP_FUNC_ADDCLIENTCMD		0x69770 
@@ -47,6 +48,10 @@
 	#define SAMP_FUNC_PLAYAUDIOSTR		0x66960
 	#define SAMP_FUNC_STOPAUDIOSTR		0x66560
 	#define SAMP_FUNC_TAKESCREENSHOT	0x75620
+
+	#define SAMP_FUNC_SET_VEHICLE_NUMBERPLATE 0xB8190
+	#define SAMP_FUNC_UPDATE_NUMBERPLATE 0xB81E0
+	#define SAMP_FUNC_D3D_CREATE_NUMBERPLATE_TEXTURE 0x6D880
 
 	#define SAMP_HOOK_ADD_TO_CHAT		0x67BE2
 	#define SAMP_HOOK_UPDATE_SCOREBOARD	0x10533
@@ -502,24 +507,48 @@ struct stSAMPPed : public stSAMPEntity<actor_info>
 	int					isUrinating;
 };
 
-struct stSAMPVehicle : public stSAMPEntity<vehicle_info>
-{
-	// #pragma pack( 1 )
-	uint32_t			ulUnk;
-	uint8_t				byteUnknown2[8];
-	int					iIsMotorOn;
-	int					iIsLightsOn;
-	int					iIsLocked;
-	uint8_t				byteIsObjective;
-	int					iObjectiveBlipCreated;
-	uint8_t				byteUnknown3[20];
-	uint8_t				byteUnk[2];
-	int					iColorSync;
-	int					iColor_something;
+#if defined(SAMP_VERSION_R4_2)
+	struct stSAMPVehicle : public stSAMPEntity<vehicle_info>
+	{
+		// #pragma pack( 1 )
+		uint32_t			ulUnk;					// 72
+		struct vehicle_info *pGTA_Vehicle;			// 76
+		int					iIsMotorOn;				// 80
+		int					iIsLightsOn;			// 84
+		int					iIsLocked;				// 88
+		uint8_t				byteUnk_1[51];			// 92
+		void				*pNumberplateTexture;	// 143
+		char				szNumberPlate[32];		// 147
+		uint8_t				byteUnk_2[21];			// 179
+		//uint8_t			byteIsObjective;		// 96
+		//int				iObjectiveBlipCreated;	// 97
+		//uint8_t			byteUnknown3[20];		// 101
+		//uint8_t			byteUnk[2];				// 121
+		//int				iColorSync;				// 123
+		//int				iColor_something;		// 127
 
-	uint8_t				byteColor[5];
-	struct vehicle_info *pGTA_Vehicle;
-};
+		//uint8_t			byteColor[5];			// 131
+	};
+#elif defined(SAMP_VERSION_R4)
+	struct stSAMPVehicle : public stSAMPEntity<vehicle_info>
+	{
+		// #pragma pack( 1 )
+		uint32_t			ulUnk;					// 72
+		uint8_t				byteUnknown2[8];		// 76
+		int					iIsMotorOn;				// 84
+		int					iIsLightsOn;			// 88
+		int					iIsLocked;				// 92
+		uint8_t				byteIsObjective;		// 96
+		int					iObjectiveBlipCreated;	// 97
+		uint8_t				byteUnknown3[20];		// 101
+		uint8_t				byteUnk[2];				// 121
+		int					iColorSync;				// 123
+		int					iColor_something;		// 127
+
+		uint8_t				byteColor[5];			// 131
+		struct vehicle_info *pGTA_Vehicle;			// 136
+	};
+#endif
 
 struct stSAMPObject : public stSAMPEntity<object_info>
 {
@@ -987,7 +1016,7 @@ typedef __cdecl void (*GameProcessFunc)();
 
 namespace SAMP {
 
-	bool setupSystem();
+	void setupSystem();
 	void loop();
 	void oneSecondTimer();
 	const DWORD getSampDllHandle();
@@ -1002,6 +1031,12 @@ namespace SAMP {
 	void toggleSampCursor(int cursorMode, bool bImmediatelyHideCursor, bool bProcessInMainThread);
 	void toggleAfkMode();
 	bool isAfkModeEnabled();
+
+	// ----- Game
+
+	//void setVehicleNumberPlate(struct stSAMPVehicle *vehiclePtr, const char *numberplate);
+	//void recreateVehicleNumberPlate(struct stSAMPVehicle *vehiclePtr);
+	//void *D3DcreateNumberPlateTexture(const char *numberplate);
 }
 
 // ----- samp.dll Global var declarations -----
@@ -1012,6 +1047,7 @@ extern struct stInputInfo		*g_Input;
 extern struct stChatInfo		*g_Chat;
 extern struct stSAMP			*g_Samp;
 extern void 					*g_Misc;
+//extern void						*g_UnknownPtr;
 extern bool 					g_IsSampReady;
 
 #endif

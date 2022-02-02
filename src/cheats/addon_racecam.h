@@ -3,11 +3,10 @@
 
 namespace AddonRacecam {
 
-	// ----- Function declarations -----
+	// ----- Public functions -----
 
 	void setupAddon();
 	void updateAddon();
-	void oneSecondTimer();
 };
 
 #endif

@@ -162,10 +162,12 @@ void CheatESP::updateCheat()
 			}
 		}
 
+		infoMsgf("closest player in front: %d", sClosestPlayerId);
+
 		// If there's remote player close enough and in front of local player
 		// and local player is aiming, automatically aim to the closest remote player
 
-		CheatESP::targetAim = nullptr;
+		/*CheatESP::targetAim = nullptr;
 		if(GetAsyncKeyState(VK_RBUTTON) & 0x8000){
 			if(sClosestPlayerId != PLAYER_ID_SELF){
 				bool uiOn = isSampChatInputActive() || isSampDialogActive() || isSampScoreboardActive();
@@ -177,10 +179,12 @@ void CheatESP::updateCheat()
 					}
 				}
 			}
-		}
+		}*/
 
 		// Set auto aim target
-		getGTAPedFromSampId(PLAYER_ID_SELF)->ptr_autoAimTarget = CheatESP::targetAim;
+		if(CheatESP::targetAim != nullptr){
+			getGTAPedFromSampId(PLAYER_ID_SELF)->ptr_autoAimTarget = CheatESP::targetAim;
+		}
 	}
 }
 

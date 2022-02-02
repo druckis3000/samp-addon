@@ -70,6 +70,8 @@ void disableFPSLock(DWORD dwSAMPBase)
 			if(*(BYTE*)dwFPSSleep[3] != val3)
 				writeMemory(dwFPSSleep[3], val3, 1);
 		}
+
+		Log("FPS Delimiter ready!");
 	}
 }
 

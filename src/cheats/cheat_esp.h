@@ -3,7 +3,7 @@
 
 namespace CheatESP {
 
-	// ----- Public function declarations -----
+	// ----- Public functions -----
 
 	void setupCheat();
 	void updateCheat();

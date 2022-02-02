@@ -4,7 +4,7 @@
 #include "utils/helper.h"
 #include "utils/memfuncs.h"
 #include "vecmath.h"
-#include "utils/event.h"
+#include "utils/callbacks.h"
 #include "utils/tqueue.h"
 
 #include "helpers/sampfuncs.hpp"
@@ -26,6 +26,7 @@ stInputInfo			*g_Input = nullptr;
 stChatInfo			*g_Chat = nullptr;
 stSAMP				*g_Samp = nullptr;
 void				*g_Misc = nullptr;
+void				*g_UnknownPtr = nullptr;
 bool				g_IsSampReady = false;
 
 namespace SAMP {
@@ -36,7 +37,6 @@ namespace SAMP {
 
 	// ----- samp.dll function hooks -----
 
-	FHook startGameHook;
 	FHook onChatMessageHook;
 	FHook onScoreboardUpdateHook;
 	FHook onSetCheckpointHook;
@@ -46,7 +46,7 @@ namespace SAMP {
 
 	// ----- Private samp.cpp vars -----
 
-	// Used for storing samp.dll::addToChatWindow function parameter values (pointers are of samp.dll thread)
+	// Used for storing samp.dll::addToChatWindow function parameter values
 	char *pLastServerMessage;
 	char *pLastServerMessagePrefix;
 	ChatMessageType eLastMessageType;
@@ -54,12 +54,12 @@ namespace SAMP {
 	DWORD dwLastMessagePrefixColor;
 	TQueue<struct stAddMessageParams> g_AddMessageCallsQueue;
 
-	// Used for storing samp.dll::setCheckpoint function parameter values (pointers are of samp.dll thread)
+	// Used for storing samp.dll::setCheckpoint function parameter values
 	float *pCheckpoint_XYZ;
 	float checkpoint_Size;
 	TQueue<struct stSetCheckpointParams> g_SetCheckpointCallsQueue;
 
-	// Used for storing samp.dll::showBigMessage function parameter values (pointers are of samp.dll thread)
+	// Used for storing samp.dll::showBigMessage function parameter values
 	char *pLastBigMessageText;
 	unsigned int lastBigMessageTime;
 	unsigned int lastBigMessageStyle = -1;
@@ -70,16 +70,13 @@ namespace SAMP {
 	TQueue<struct stOnDialogResponseParams> g_OnDialogResponseQueue;
 
 	// Used for invoking scoreboard update callbacks in main thread
-	volatile bool bUpdateScoreboard = false;
+	volatile bool bScoreboardUpdated = false;
 
-	// Used for processing toggleCursor function call in main thread
+	// Used for executing toggleCursor function call in main thread
 	volatile struct stToggleCursor g_CursorToggleInfo = {0, true, true};
 
 	// For testing and debugging
 	bool isKey2Pressed = true;
-
-	// Update scoreboard for /i local command
-	bool bScoreboardUpdated = false;
 
 	// For list dialog selector with keyboard numbers
 	bool bNumberKeyStates[9] = {};
@@ -106,12 +103,11 @@ __declspec(naked) void HOOK_onDialogButton_NAKED();
 
 using namespace SAMP;
 
-bool SAMP::setupSystem()
+void SAMP::setupSystem()
 {
 	// Get samp.dll base address
-	while((g_SampBaseAddress = (DWORD)GetModuleHandle("samp.dll")) == (DWORD)NULL){
+	while((g_SampBaseAddress = (DWORD)GetModuleHandle("samp.dll")) == (DWORD)NULL)
 		Sleep(100);
-	}
 
 	Logf("SAMP Base address: 0x%x", (void*)g_SampBaseAddress);
 	Logf("Waiting for SAMP to load...");
@@ -119,17 +115,16 @@ bool SAMP::setupSystem()
 	// Wait until samp loads and get struct pointers
 	getSAMPPointers();
 	while(g_Samp == nullptr || g_Chat == nullptr || g_Input == nullptr || g_Dialog == nullptr || g_Scoreboard == nullptr){
-		Sleep(100);
+		Sleep(25);
 		getSAMPPointers();
 	}
 	
 	// Wait until pools get initialized
-	while(g_Samp->pPools == nullptr) Sleep(100);
-	while(g_Samp->pPools->pPlayer == nullptr) Sleep(100);
-	while(g_Samp->pPools->pVehicle == nullptr) Sleep(100);
-	while(g_Samp->pPools->pObject == nullptr) Sleep(100);
-	while(g_Samp->pPools->pTextdraw == nullptr) Sleep(100);
-
+	while(g_Samp->pPools == nullptr) Sleep(25);
+	while(g_Samp->pPools->pPlayer == nullptr) Sleep(25);
+	while(g_Samp->pPools->pVehicle == nullptr) Sleep(25);
+	while(g_Samp->pPools->pObject == nullptr) Sleep(25);
+	while(g_Samp->pPools->pTextdraw == nullptr) Sleep(25);
 	g_Misc = *(void**)(g_SampBaseAddress + SAMP_PTR_MISC_OFFSET);
 	
 	Log("SAMP Loaded! Hooking functions");
@@ -186,29 +181,21 @@ bool SAMP::setupSystem()
 	// Unlimited fps
 	disableFPSLock(g_SampBaseAddress);
 
-	// Add own commands
-	HelperCmds::registerCmds();
-
-	// Custom nametag distance patch
+	// Allow changing nametag distance patch
 	writeMemory(g_SampBaseAddress + SAMP_NOP_NAMETAG_DIST_1, 0x90, 6);
 	writeMemory(g_SampBaseAddress + SAMP_NOP_NAMETAG_DIST_2, 0x90, 6);
 	Log("Nametag distance patched!");
 
+	// Add addon commands
+	HelperCmds::registerCmds();
+
 	// Set samp ready flag
 	g_IsSampReady = true;
-
-	return true;
 }
 
 void SAMP::loop()
 {
 	if(!g_IsSampReady) return;
-
-	// Needed for /i command
-	if(g_Samp->iGameState == GAME_STATE_PLAYING && !bScoreboardUpdated){
-		updateScoreboardInfo();
-		bScoreboardUpdated = true;
-	}
 
 	if(GetAsyncKeyState(VK_NUMPAD2) & 0x8000){
 		if(!isKey2Pressed){
@@ -236,49 +223,47 @@ void SAMP::loop()
 		}
 	}
 	
-	// Do cheating stuff
-	if(g_IsSampReady){
-		// Process toggleCursor function call, if not processed yet
-		if(g_CursorToggleInfo.bProcessed == false){
-			reinterpret_cast<void(__thiscall *)(void *_this, int, bool)>(g_SampBaseAddress + SAMP_FUNC_TOGGLECURSOR)(g_Misc, g_CursorToggleInfo.iMode, g_CursorToggleInfo.bBoolean);
-			
-			// Mark as processed
-			g_CursorToggleInfo.bProcessed = true;
-		}
+	// Process toggleCursor function call, if not processed yet
+	if(g_CursorToggleInfo.bProcessed == false){
+		reinterpret_cast<void(__thiscall *)(void *_this, int, bool)>(g_SampBaseAddress + SAMP_FUNC_TOGGLECURSOR)(g_Misc, g_CursorToggleInfo.iMode, g_CursorToggleInfo.bBoolean);
+		
+		// Mark as processed
+		g_CursorToggleInfo.bProcessed = true;
+	}
 
-		// Invoke callbacks in main thread
-		struct stAddMessageParams *queueMsg = nullptr;
-		while(g_AddMessageCallsQueue.next(&queueMsg)){
-			invokeOnMessageCallbacks(queueMsg->szMessage, queueMsg->dwMessageColor);
-			free(queueMsg);
-		}
+	// Invoke samp event callbacks in main thread
 
-		struct stSetCheckpointParams *queueCheckpoint = nullptr;
-		while(g_SetCheckpointCallsQueue.next(&queueCheckpoint)){
-			invokeSetCheckpointCallbacks(queueCheckpoint->fX, queueCheckpoint->fY, queueCheckpoint->fZ, queueCheckpoint->fSize);
-			free(queueCheckpoint);
-		}
+	struct stAddMessageParams *queueMsg = nullptr;
+	while(g_AddMessageCallsQueue.next(&queueMsg)){
+		invokeOnMessageCallbacks(queueMsg->szMessage, queueMsg->dwMessageColor);
+		free(queueMsg);
+	}
 
-		struct stShowBigMessageParams *queueBigMsg = nullptr;
-		while(g_ShowBigMessageCallsQueue.next(&queueBigMsg)){
-			invokeOnBigMessageCallbacks(queueBigMsg->szLastBigMessageText, queueBigMsg->ulLastBigMessageTime, queueBigMsg->ulLastBigMessageStyle);
-			free(queueBigMsg);
-		}
+	struct stSetCheckpointParams *queueCheckpoint = nullptr;
+	while(g_SetCheckpointCallsQueue.next(&queueCheckpoint)){
+		invokeSetCheckpointCallbacks(queueCheckpoint->fX, queueCheckpoint->fY, queueCheckpoint->fZ, queueCheckpoint->fSize);
+		free(queueCheckpoint);
+	}
 
-		struct stOnDialogResponseParams *queueDialogResponse = nullptr;
-		while(g_OnDialogResponseQueue.next(&queueDialogResponse)){
-			invokeOnDialogResponseCallbacks(queueDialogResponse->bButton, queueDialogResponse->eStyle, queueDialogResponse->iSelectedIndex, queueDialogResponse->szInputText);
-			
-			if(queueDialogResponse->szInputText != nullptr)
-				free(queueDialogResponse->szInputText);
+	struct stShowBigMessageParams *queueBigMsg = nullptr;
+	while(g_ShowBigMessageCallsQueue.next(&queueBigMsg)){
+		invokeOnBigMessageCallbacks(queueBigMsg->szLastBigMessageText, queueBigMsg->ulLastBigMessageTime, queueBigMsg->ulLastBigMessageStyle);
+		free(queueBigMsg);
+	}
 
-			free(queueDialogResponse);
-		}
+	struct stOnDialogResponseParams *queueDialogResponse = nullptr;
+	while(g_OnDialogResponseQueue.next(&queueDialogResponse)){
+		invokeOnDialogResponseCallbacks(queueDialogResponse->bButton, queueDialogResponse->eStyle, queueDialogResponse->iSelectedIndex, queueDialogResponse->szInputText);
+		
+		if(queueDialogResponse->szInputText != nullptr)
+			free(queueDialogResponse->szInputText);
 
-		if(bUpdateScoreboard){
-			invokeOnScoreboardUpdateCallbacks();
-			bUpdateScoreboard = false;
-		}
+		free(queueDialogResponse);
+	}
+
+	if(bScoreboardUpdated){
+		invokeOnScoreboardUpdateCallbacks();
+		bScoreboardUpdated = false;
 	}
 }
 
@@ -328,9 +313,6 @@ __declspec(naked) void HOOK_onChatMessage_NAKED()
 	__asm("mov %ecx, %ebp");
 	__asm("push %edi");
 	__asm("push %ecx");
-	
-//	__asm("movl 0x8(%%esp), %0"
-//			:"=r"(pLastServerMessage));
 
 	// +20 = MSG_TYPE
 	// +24 = text
@@ -357,16 +339,10 @@ __declspec(naked) void HOOK_onChatMessage_NAKED()
 			:"m"(onChatMessageHook.jmpBackAddress));
 }
 
-void onScoreboardUpdate()
-{
-	if(g_Samp == nullptr || g_Samp->pPools == nullptr || g_Samp->pPools->pPlayer == nullptr) return;
-
-	bUpdateScoreboard = true;
-}
-
 __declspec(naked) void HOOK_onScoreboardUpdate_NAKED()
 {
-	onScoreboardUpdate();
+	// Set scoreboard updated flag
+	bScoreboardUpdated = true;
 	
 	__asm("add $0x12C, %esp");
 	__asm("jmp *(%0)"
@@ -643,6 +619,37 @@ bool SAMP::isAfkModeEnabled()
 	return bAfkEnabled;
 }
 
+// ----- samp.dll Game functions -----
+
+/*void SAMP::setVehicleNumberPlate(struct stSAMPVehicle *vehiclePtr, const char *numberplate)
+{
+	reinterpret_cast<void(__thiscall *)(void *_this, const char *np)>(g_SampBaseAddress + SAMP_FUNC_SET_VEHICLE_NUMBERPLATE)(vehiclePtr, numberplate);
+}
+
+void SAMP::recreateVehicleNumberPlate(struct stSAMPVehicle *vehiclePtr)
+{
+	// Set vehicle number plate texture to nullptr. This causes
+	// SAMP to recreate vehicle's number plate texture,
+	// otherwise SAMP won't do it
+	vehiclePtr->pNumberplateTexture = nullptr;
+
+	g_PtrVehicleChangeNumberPlate = vehiclePtr;
+	//reinterpret_cast<void(__thiscall *)(void *_this)>(g_SampBaseAddress + SAMP_FUNC_UPDATE_NUMBERPLATE)(vehiclePtr);
+}*/
+
+/**
+ * @brief This function must be called from SAMP thread, otherwise
+ * there will be short graphics glitch.
+ * 
+ * @param numberplate number plate string. SAMP text coloring allowed {FFFFFF}. Max string length 32
+ * @return void* pointer to new texture
+ */
+/*void *SAMP::D3DcreateNumberPlateTexture(const char *numberplate)
+{
+	uint32_t texPointer = reinterpret_cast<uint32_t(__thiscall *)(void *_this, const char* np)>(g_SampBaseAddress + SAMP_FUNC_D3D_CREATE_NUMBERPLATE_TEXTURE)(g_UnknownPtr, numberplate);
+	return (void*)texPointer;
+}*/
+
 // ----- Private functions -----
 
 void SAMP::getSAMPPointers()
@@ -652,6 +659,7 @@ void SAMP::getSAMPPointers()
 	g_Input = GetSAMPPtrInfo<stInputInfo*>(SAMP_PTR_CHAT_INPUT_INFO_OFFSET);
 	g_Chat = GetSAMPPtrInfo<stChatInfo*>(SAMP_PTR_CHAT_INFO_OFFSET);
 	g_Samp = GetSAMPPtrInfo<stSAMP*>(SAMP_PTR_SAMP_INFO_OFFSET);
+	g_UnknownPtr = GetSAMPPtrInfo<void*>(SAMP_PTR_UNKNOWN);
 }
 
 template<typename T>
