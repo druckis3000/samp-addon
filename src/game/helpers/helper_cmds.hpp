@@ -109,6 +109,7 @@ void HelperCmds::testCmd()
 	infoMsg(0xFF7b68ee, "/zab - toggle aimbot");
 	infoMsg(0xFF7b68ee, "/zrc - toogle racecam");
 	infoMsg(0xFF7b68ee, "/zafk - toggle afk mode");
+	infoMsg(0xFF7b68ee, "/znp [number plate] - change vehicle number plate");
 	infoMsg(0xFF7b68ee, "/i (id/name) - info about player");
 	infoMsg(0xFF7b68ee, "/fw [0 - 20] - freeze weather (without [id] - stop freeze)");
 	infoMsg(0xFF7b68ee, "/dd [1 - 3600] - change draw distance (without [value] - default draw distance)");

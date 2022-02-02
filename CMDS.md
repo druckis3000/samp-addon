@@ -10,6 +10,7 @@
 - **/zab - toggle aimbot**
 - **/zrc - toogle racecam**
 - **/zafk - toggle afk mode**
+- **/znp - [number plate] - change vehicle number plate**
 - **/i (id/name) - info about player**
 - **/lw [0 - 20] - lock weather (without [id] - stop lock)**
 - **/dd [1 - 3600] - change draw distance (without [value] - default draw distance)**
