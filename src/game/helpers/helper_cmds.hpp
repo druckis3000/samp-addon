@@ -28,9 +28,10 @@ namespace HelperCmds {
 	void testCmd();
 	void debugPlayer(const char *arg);
 	void changeWeather(const char *arg);
-	void lockWeather(const char *arg);
+	void freezeWeather(const char *arg);
 	void setDrawDistance(const char *arg);
 	void trackPlayer(const char *arg);
+	void changeNumberPlate(const char *arg);
 
 	// ----- Helper functions -----
 
@@ -45,10 +46,11 @@ void HelperCmds::registerCmds()
 
 	SAMP::addClientCommand("zcmds", testCmd);
 	SAMP::addClientCommand("i", (CMDPROC)debugPlayer);
-	SAMP::addClientCommand("lw", (CMDPROC)lockWeather);
+	SAMP::addClientCommand("fw", (CMDPROC)freezeWeather);
 	SAMP::addClientCommand("dd", (CMDPROC)setDrawDistance);
 	SAMP::addClientCommand("kkur", (CMDPROC)trackPlayer);
-	SAMP::addClientCommand("afk", []{ SAMP::toggleAfkMode(); });
+	SAMP::addClientCommand("afk", ([]{ SAMP::toggleAfkMode(); }));
+	SAMP::addClientCommand("znp", (CMDPROC)changeNumberPlate);
 
 	#ifdef LOG_VERBOSE
 		Log("helper_cmds.cpp: Loading settings");
@@ -64,7 +66,7 @@ void HelperCmds::oneSecondTimer()
 		GTA_SA::forceWeather(g_dWeatherFreeze);
 	}
 
-	if(g_fDrawDistance != 0.0){
+	if(g_fDrawDistance > 0.0){
 		GTA_SA::setDrawDistance(g_fDrawDistance);
 	}
 
@@ -94,7 +96,7 @@ void HelperCmds::testCmd()
 	infoMsg(0xFF7b68ee, "/zie - toggle ievent");
 	infoMsg(0xFF7b68ee, "/zae - toogle auto engine on");
 	infoMsg(0xFF7b68ee, "/zlr - toggle newspaper helper");
-	infoMsg(0xFF7b68ee, "/zzv - toggle zvejyba bot");
+	infoMsg(0xFF7b68ee, "/zzv - toggle fishing bot");
 	infoMsg(0xFF7b68ee, "/ztd - toggle fish count textdraw");
 	infoMsg(0xFF7b68ee, "/kkur [id/name] - track player (without [id] - stop tracking)");
 	infoMsg(0xFF7b68ee, "-------------------------------------------------------------");
@@ -108,7 +110,7 @@ void HelperCmds::testCmd()
 	infoMsg(0xFF7b68ee, "/zrc - toogle racecam");
 	infoMsg(0xFF7b68ee, "/zafk - toggle afk mode");
 	infoMsg(0xFF7b68ee, "/i (id/name) - info about player");
-	infoMsg(0xFF7b68ee, "/lw [0 - 20] - lock weather (without [id] - stop lock)");
+	infoMsg(0xFF7b68ee, "/fw [0 - 20] - freeze weather (without [id] - stop freeze)");
 	infoMsg(0xFF7b68ee, "/dd [1 - 3600] - change draw distance (without [value] - default draw distance)");
 }
 
@@ -143,20 +145,20 @@ void HelperCmds::debugPlayer(const char *arg)
 	infoMsgf("Score: %u", getPlayerScore(playerId));
 }
 
-void HelperCmds::lockWeather(const char *arg)
+void HelperCmds::freezeWeather(const char *arg)
 {
 	#ifdef LOG_VERBOSE
-		Log("helper_cmds.hpp: /lw command called");
+		Log("helper_cmds.hpp: /fw command called");
 	#endif
 
 	if(strlen(arg) == 0){
-		infoMsg("Lock weather disabled");
+		infoMsg("Freeze weather disabled");
 		g_dWeatherFreeze = -1;
 		return;
 	}
 
 	if(!isNumber(arg)){
-		infoMsg("Usage: /lw [0 - 20]");
+		infoMsg("Usage: /fw [0 - 20]");
 		return;
 	}
 
@@ -191,6 +193,10 @@ void HelperCmds::setDrawDistance(const char *arg)
 
 	float drawDistance = (float)strtol(arg, NULL, 10);
 	g_fDrawDistance = drawDistance;
+
+	if(drawDistance == 0.0){
+		infoMsg("Draw distance set to default");
+	}
 }
 
 void HelperCmds::trackPlayer(const char *arg)
@@ -230,6 +236,28 @@ void HelperCmds::trackPlayer(const char *arg)
 
 		infoMsg("Failed to get player name!");
 	}
+}
+
+void HelperCmds::changeNumberPlate(const char *arg)
+{
+	if(strlen(arg) == 0){
+		infoMsg("Usage: /znp [new number plate]");
+		return;
+	}
+
+	if(!isPlayerInVehicle(PLAYER_ID_SELF)){
+		infoMsg("You must be in vehicle in order to change number plate!");
+		return;
+	}
+
+	if(strlen(arg) > 32){
+		infoMsg("Number plate too long! Max length: 32");
+		return;
+	}
+
+	// Change number plate
+	setVehicleNumberPlate(getPlayerVehicleId(PLAYER_ID_SELF), arg);
+	infoMsg("Number plate changed!");
 }
 
 // ----- Helper Functions -----

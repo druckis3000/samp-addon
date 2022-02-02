@@ -207,7 +207,7 @@ static int createTextdrawWithId(int id, const char *text, float x, float y, DWOR
 	if(textdraw == nullptr) return -1;
 
 	strncpy(textdraw->szText, text, SAMP_MAX_TEXTDRAW_TEXT_LENGTH);
-	strncpy(textdraw->szString, text, 0x642);
+	strncpy(textdraw->szString, text, 0x641);
 	textdraw->fLetterWidth = 0.5f;
 	textdraw->fLetterHeight = 1.2f;
 	textdraw->dwLetterColor = color;
@@ -441,6 +441,30 @@ static int getPlayerVehicleId(int playerId)
 }
 
 /**
+ * @brief Change vehicle number plate. Will not execute if vehicle is not streamed.
+ * 
+ * @param vehicleId vehicle id of which to change number plate
+ * @param numberPlate number plate string. SAMP text coloring allowed {FFFFFF}. Max string length 32
+ */
+static void setVehicleNumberPlate(int vehicleId, const char *numberPlate)
+{
+	// Get SAMP vehicle struct pointer
+	struct stSAMPVehicle *sampVehicle = g_Samp->pPools->pVehicle->pSAMP_Vehicle[vehicleId];
+
+	// Safety check
+	if(!g_Samp->pPools->pVehicle->iIsListed[vehicleId] || sampVehicle == nullptr) return;
+	if(strlen(numberPlate) > 32) return;
+
+	// Change vehicle number plate
+	strncpy(sampVehicle->szNumberPlate, numberPlate, 32);
+
+	// Set number plate texture to nullptr. This causes
+	// SAMP to recreate vehicle's number plate texture,
+	// otherwise number plate change won't be visible
+	sampVehicle->pNumberplateTexture = nullptr;
+}
+
+/**
  * @return pointer to GTA ped (struct actor_info) of player which id equals to playerId
  * (Can return nullptr if samp is not ready or player is not connected
  *  or player is not streamed or due to other unknown reasons)
@@ -469,6 +493,18 @@ static struct vehicle_info* getGTAVehicleFromSampId(int vehicleId)
 	if(g_Samp->pPools->pVehicle->iIsListed[vehicleId] != 1) return nullptr;
 
 	return g_Samp->pPools->pVehicle->pGTA_Vehicle[vehicleId];
+}
+
+/**
+ * @return pointer to SAMP vehicle (struct stSAMPVehicle) of vehicle which id equals to vehicleId
+ * (Can return nullptr if samp is not ready or vehicle is not streamed or due to other unknown reasons) 
+ */
+static struct stSAMPVehicle* getSAMPVehicle(int vehicleId)
+{
+	// Safety check
+	if(g_Samp->pPools->pVehicle->iIsListed[vehicleId] != 1) return nullptr;
+
+	return g_Samp->pPools->pVehicle->pSAMP_Vehicle[vehicleId];
 }
 
 /**
