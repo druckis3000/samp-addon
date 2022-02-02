@@ -9,7 +9,6 @@ namespace AddonIevent {
 
 	void setupAddon();
 	void updateAddon();
-	void onMessage(const char *msg, DWORD color);
 };
 
 #endif
