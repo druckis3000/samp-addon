@@ -34,18 +34,18 @@ namespace CheatAntiSpeedcam {
 	} Coord;
 	std::list<Coord> listSpeedCams;
 
-	uint8_t g_byteAntiSpeedCamSetting = 0;
-	uint8_t g_byteAntiSpeedCamEnabled = 1;
-	double g_fLastLimitTime = 0.0;
-	float g_fSpeedLimit = 98.0;
-	bool g_bPlayerInformed = false;
+	uint8_t byteAntiSpeedCamSetting = 0;
+	uint8_t byteAntiSpeedCamEnabled = 1;
+	double fLastLimitTime = 0.0;
+	float fSpeedLimit = 98.0;
+	bool bPlayerInformed = false;
 
 	// Constants for speed reduction algorithm
 
-	const float g_fSpeedMultiplier = 165.0;
-	const float g_fSlowDownRadius = 100.0;
-	const float g_fSpeedCamRadius = 50.0;
-	const float g_fSlowDownFactor = 325.0;
+	const float fSpeedMultiplier = 165.0;
+	const float fSlowDownRadius = 100.0;
+	const float fSpeedCamRadius = 50.0;
+	const float fSlowDownFactor = 325.0;
 
 	// ----- Private functions -----
 
@@ -68,10 +68,9 @@ void CheatAntiSpeedcam::setupCheat()
 		Log("cheat_speedcam.cpp: Loading settings");
 	#endif
 
-	g_byteAntiSpeedCamEnabled = g_byteAntiSpeedCamSetting = Settings::getInt("settings", "antiSpeedCam", 0);
-	g_fSpeedLimit = Settings::getFloat("settings", "speedCamLimit", 98.0f);
-	if(g_fSpeedLimit < 1.0) g_fSpeedLimit = 1.0;
-	else if(g_fSpeedLimit > 500.0) g_fSpeedLimit = 500.0;
+	fSpeedLimit = Settings::getFloat("settings", "speedCamLimit", 98.0f);
+	if(fSpeedLimit < 1.0) fSpeedLimit = 1.0;
+	else if(fSpeedLimit > 500.0) fSpeedLimit = 500.0;
 	
 	// Load speed cams list
 	std::string speedCams = Settings::getString("settings", "speedCams", "");
@@ -88,17 +87,39 @@ void CheatAntiSpeedcam::setupCheat()
 			listSpeedCams.push_back({x, y, z});
 		}
 	}
+
+	// Load servers ip addresses
+	std::string serverIps = Settings::getString("settings", "antiSpeedCamIp", "");
+	if(serverIps.length() > 0){
+		std::istringstream sstream(serverIps);
+		std::string ipAddress;
+		bool bFoundIp = false;
+		
+		while(std::getline(sstream, ipAddress, ':')){
+			if(!strcmp(ipAddress.c_str(), g_Samp->szHostAddress)){
+				Log("Enable anti speed cam depending on setting");
+				byteAntiSpeedCamEnabled = byteAntiSpeedCamSetting = Settings::getInt("settings", "antiSpeedCam", 0);
+				bFoundIp = true;
+				break;
+			}
+		}
+		
+		if(!bFoundIp){
+			Log("Force disable anti speed cam");
+			byteAntiSpeedCamEnabled = false;
+		}
+	}
 }
 
 void CheatAntiSpeedcam::updateCheat()
 {
-	if(g_byteAntiSpeedCamEnabled == 0) return;
+	if(byteAntiSpeedCamEnabled == 0) return;
 
 	// Don't do this cheat if player is on foot
 	if(!isPlayerInVehicle(PLAYER_ID_SELF)) return;
 
 	// Check timer
-	if(GetTimeMillis() - g_fLastLimitTime < 0.1) return;
+	if(GetTimeMillis() - fLastLimitTime < 0.1) return;
 
 	// Find local player vehicle
 	struct vehicle_info *gtaVehicle = getGTAVehicleFromSampId(getPlayerVehicleId(PLAYER_ID_SELF));
@@ -123,19 +144,19 @@ void CheatAntiSpeedcam::updateCheat()
 		// Calculate distance
 		float dist = vect3_dist(objPos, playerPos);
 
-		if(g_byteAntiSpeedCamEnabled == 1){
+		if(byteAntiSpeedCamEnabled == 1){
 			// If player is close to speed cam, but going away from it,
 			// let him accelerate, and stop further execution
-			if(dist < g_fSlowDownRadius){
-				if(dist > (g_fSpeedCamRadius / 1.5)){
+			if(dist < fSlowDownRadius){
+				if(dist > (fSpeedCamRadius / 1.5)){
 					float angle = getAngleToSpeedCam(gtaVehicle, playerPos, objPos);
 					if(angle > (M_PI / 2.0) + 0.1) return;
 				}
 			}
 
-			if(dist < g_fSpeedCamRadius){
+			if(dist < fSpeedCamRadius){
 				// Player is in speed cam radius, at this moment speed
-				// should not be greater than g_fSpeedLimit
+				// should not be greater than fSpeedLimit
 
 				// Get vehicle movement direction
 				float forwardVec[4] = {0.0f, 1.0f, 0.0f, 0.0f};
@@ -143,22 +164,22 @@ void CheatAntiSpeedcam::updateCheat()
 				matrix_vect4_mult(gtaVehicle->base.matrix, forwardVec, vehDirection);
 
 				// Get vehicle speed
-				float vehSpeed = vect3_length(gtaVehicle->speed) * g_fSpeedMultiplier;
+				float vehSpeed = vect3_length(gtaVehicle->speed) * fSpeedMultiplier;
 
-				if(vehSpeed >= g_fSpeedLimit){
+				if(vehSpeed >= fSpeedLimit){
 					// Limit speed in moving direction
 					float movementDirection[3];
 					vect3_normalize(gtaVehicle->speed, movementDirection);
 
 					// Calculate new speed
-					const float newSpeed = g_fSpeedLimit / g_fSpeedMultiplier;
+					const float newSpeed = fSpeedLimit / fSpeedMultiplier;
 					vect3_mult(movementDirection, newSpeed, gtaVehicle->speed);
 				}
 
 				// Stop iterating over other cams, if player is in radius of one cam,
 				// it's impossible to be in other cam radius
 				break;
-			}else if(dist < g_fSlowDownRadius){
+			}else if(dist < fSlowDownRadius){
 				// Close enough to start slowing down
 
 				// Get vehicle movement direction
@@ -167,43 +188,43 @@ void CheatAntiSpeedcam::updateCheat()
 				matrix_vect4_mult(gtaVehicle->base.matrix, forwardVec, vehDirection);
 
 				// Get vehicle speed
-				float vehSpeed = vect3_length(gtaVehicle->speed) * g_fSpeedMultiplier;
+				float vehSpeed = vect3_length(gtaVehicle->speed) * fSpeedMultiplier;
 				
-				if(vehSpeed >= g_fSpeedLimit){
+				if(vehSpeed >= fSpeedLimit){
 					// Slow down in moving direction
 					float movementDirection[3];
 					vect3_normalize(gtaVehicle->speed, movementDirection);
 
 					// Calculate new speed
-					const float newSpeed = (vehSpeed - (g_fSlowDownFactor * GTA_SA::getDelta())) / g_fSpeedMultiplier;
+					const float newSpeed = (vehSpeed - (fSlowDownFactor * GTA_SA::getDelta())) / fSpeedMultiplier;
 					vect3_mult(movementDirection, newSpeed, gtaVehicle->speed);
 				}
 
 				// Update timer
-				g_fLastLimitTime = GetTimeMillis();
+				fLastLimitTime = GetTimeMillis();
 
 				// Stop iterating over other cams, if player is in radius of one cam,
 				// it's impossible to be in other cam radius
 				break;
 			}
-		}else if(g_byteAntiSpeedCamEnabled == 2){
-			if(dist < g_fSlowDownRadius){
+		}else if(byteAntiSpeedCamEnabled == 2){
+			if(dist < fSlowDownRadius){
 				foundCamNearby = true;
 				break;
 			}
 		}
 	}
 
-	if(g_byteAntiSpeedCamEnabled == 2){
+	if(byteAntiSpeedCamEnabled == 2){
 		if(foundCamNearby){
-			if(!g_bPlayerInformed){
+			if(!bPlayerInformed){
 				// Inform player about speed cam nearby
 				infoMsg(0xFFFF2222, "Approaching speed cam!");
 				showGameText("~r~Approaching speed cam!", 1500, 3);
-				g_bPlayerInformed = true;
+				bPlayerInformed = true;
 			}
 		}else{
-			g_bPlayerInformed = false;
+			bPlayerInformed = false;
 		}
 	}
 }
@@ -213,14 +234,14 @@ void CheatAntiSpeedcam::toggleOrChangeSpeedLimit(const char *arg)
 	if(strlen(arg) > 0){
 		float speedLimit = (float)atof(arg);
 		if(speedLimit != 0.0){
-			g_fSpeedLimit = speedLimit;
+			fSpeedLimit = speedLimit;
 			GTA_SA::addMessage((const char*)"Speed limit changed!", 2000, 0, false);
 		}
 	}else{
-		if(g_byteAntiSpeedCamEnabled > 0) g_byteAntiSpeedCamEnabled = 0;
-		else g_byteAntiSpeedCamEnabled = g_byteAntiSpeedCamSetting;
+		if(byteAntiSpeedCamEnabled > 0) byteAntiSpeedCamEnabled = 0;
+		else byteAntiSpeedCamEnabled = byteAntiSpeedCamSetting;
 	
-		if(g_byteAntiSpeedCamEnabled > 0) GTA_SA::addMessage((const char*)"Anti speed cam: ~g~on", 2000, 0, false);
+		if(byteAntiSpeedCamEnabled > 0) GTA_SA::addMessage((const char*)"Anti speed cam: ~g~on", 2000, 0, false);
 		else GTA_SA::addMessage((const char*)"Anti speed cam: ~r~off", 2000, 0, false);
 	}
 }
