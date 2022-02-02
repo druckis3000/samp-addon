@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+// ----- Helper for keycombo -----
+
 struct KeyCombo {
 	bool bKey1 = false;
 	bool bKey2 = false;
@@ -22,5 +24,16 @@ inline void resetKeyStates(struct KeyCombo &keyCombo)
 	keyCombo.bKey2 = false;
 	keyCombo.bKeyComboProcessed = true;
 }
+
+// ----- Input simulation -----
+
+#define LEFT_MOUSE_BUTTON	0
+#define RIGHT_MOUSE_BUTTON	1
+
+void mouseClick(int btn, int delay);
+
+void keyDown(int key);
+void keyUp(int key);
+void keyPress(int key, int delay);
 
 #endif

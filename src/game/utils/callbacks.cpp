@@ -1,39 +1,39 @@
-#include "event.h"
-#include "helper.h"
+#include "callbacks.h"
+#include "utils/helper.h"
 
-struct stEventListener<setCheckpointCallback>		*g_SetCheckpointCallbacks;
-struct stEventListener<addMessageCallback>			*g_AddMessageCallbacks;
-struct stEventListener<showBigMessageCallback>		*g_ShowBigMessageCallbacks;
-struct stEventListener<scoreboardUpdateCallback>	*g_ScoreboardUpdateCallbacks;
-struct stEventListener<onDialogResponseCallback>	*g_OnDialogResponseCallbacks;
+struct stGameCallbackList<setCheckpointCallback>		*g_SetCheckpointCallbacks;
+struct stGameCallbackList<addMessageCallback>			*g_AddMessageCallbacks;
+struct stGameCallbackList<showBigMessageCallback>		*g_ShowBigMessageCallbacks;
+struct stGameCallbackList<scoreboardUpdateCallback>	*g_ScoreboardUpdateCallbacks;
+struct stGameCallbackList<onDialogResponseCallback>	*g_OnDialogResponseCallbacks;
 
 // ----- Private function declarations -----
 
 template <typename T>
-struct stEventListener<T>* findLast(struct stEventListener<T> *eventListeners);
+struct stGameCallbackList<T>* findLast(struct stGameCallbackList<T> *eventListeners);
 
 // ----- Public functions -----
 
-void setupEventListeners()
+void setupGameCallbacks()
 {
 	// Initialize linked lists
-	g_SetCheckpointCallbacks = new stEventListener<setCheckpointCallback>;
+	g_SetCheckpointCallbacks = new stGameCallbackList<setCheckpointCallback>;
 	g_SetCheckpointCallbacks->functionCall = NULL;
 	g_SetCheckpointCallbacks->next = NULL;
 	
-	g_AddMessageCallbacks = new stEventListener<addMessageCallback>;
+	g_AddMessageCallbacks = new stGameCallbackList<addMessageCallback>;
 	g_AddMessageCallbacks->functionCall = NULL;
 	g_AddMessageCallbacks->next = NULL;
 	
-	g_ShowBigMessageCallbacks = new stEventListener<showBigMessageCallback>;
+	g_ShowBigMessageCallbacks = new stGameCallbackList<showBigMessageCallback>;
 	g_ShowBigMessageCallbacks->functionCall = NULL;
 	g_ShowBigMessageCallbacks->next = NULL;
 	
-	g_ScoreboardUpdateCallbacks = new stEventListener<scoreboardUpdateCallback>;
+	g_ScoreboardUpdateCallbacks = new stGameCallbackList<scoreboardUpdateCallback>;
 	g_ScoreboardUpdateCallbacks->functionCall = NULL;
 	g_ScoreboardUpdateCallbacks->next = NULL;
 
-	g_OnDialogResponseCallbacks = new stEventListener<onDialogResponseCallback>;
+	g_OnDialogResponseCallbacks = new stGameCallbackList<onDialogResponseCallback>;
 	g_OnDialogResponseCallbacks->functionCall = NULL;
 	g_OnDialogResponseCallbacks->next = NULL;
 }
@@ -48,7 +48,7 @@ void addSetCheckpointCallback(setCheckpointCallback eventCallback)
 	last->functionCall = eventCallback;
 	
 	// Create next item in linked list
-	auto *newItem = new stEventListener<setCheckpointCallback>;
+	auto *newItem = new stGameCallbackList<setCheckpointCallback>;
 	newItem->functionCall = NULL;
 	newItem->next = NULL;
 	last->next = newItem;
@@ -79,7 +79,7 @@ void addAddMessageCallback(addMessageCallback eventCallback)
 	last->functionCall = eventCallback;
 	
 	// Create next item in linked list
-	auto *newItem = new stEventListener<addMessageCallback>;
+	auto *newItem = new stGameCallbackList<addMessageCallback>;
 	newItem->functionCall = NULL;
 	newItem->next = NULL;
 	last->next = newItem;
@@ -110,7 +110,7 @@ void addShowBigMessageCallback(showBigMessageCallback eventCallback)
 	last->functionCall = eventCallback;
 
 	// Create next item in linked list
-	auto *newItem = new stEventListener<showBigMessageCallback>;
+	auto *newItem = new stGameCallbackList<showBigMessageCallback>;
 	newItem->functionCall = NULL;
 	newItem->next = NULL;
 	last->next = newItem;
@@ -141,7 +141,7 @@ void addScoreboardUpdateCallback(scoreboardUpdateCallback eventCallback)
 	last->functionCall = eventCallback;
 
 	// Create next item in linked list
-	auto *newItem = new stEventListener<scoreboardUpdateCallback>;
+	auto *newItem = new stGameCallbackList<scoreboardUpdateCallback>;
 	newItem->functionCall = NULL;
 	newItem->next = NULL;
 	last->next = newItem;
@@ -172,7 +172,7 @@ void addOnDialogResponseCallback(onDialogResponseCallback eventCallback)
 	last->functionCall = eventCallback;
 
 	// Create next item in linked list
-	auto *newItem = new stEventListener<onDialogResponseCallback>;
+	auto *newItem = new stGameCallbackList<onDialogResponseCallback>;
 	newItem->functionCall = NULL;
 	newItem->next = NULL;
 	last->next = newItem;
@@ -196,9 +196,9 @@ void invokeOnDialogResponseCallbacks(uint8_t button, enum eDialogStyle style, ui
 // ----- Helper functions -----
 
 template <typename T>
-struct stEventListener<T>* findLast(struct stEventListener<T> *eventListeners)
+struct stGameCallbackList<T>* findLast(struct stGameCallbackList<T> *eventListeners)
 {
-	struct stEventListener<T> *current = eventListeners;
+	struct stGameCallbackList<T> *current = eventListeners;
 	while(current->next != nullptr){
 		current = current->next;
 	}

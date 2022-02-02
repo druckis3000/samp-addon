@@ -14,15 +14,15 @@ typedef void(*scoreboardUpdateCallback)();
 typedef void(*onDialogResponseCallback)(uint8_t button, enum eDialogStyle style, uint32_t selectedIndex, char *input);
 
 template <typename T>
-struct stEventListener {
+struct stGameCallbackList {
 	T functionCall;
 	bool first;
-	stEventListener<T> *next;
+	stGameCallbackList<T> *next;
 };
 
-// ----- Function declarations -----
+// ----- Public function declarations -----
 
-void setupEventListeners();
+void setupGameCallbacks();
 
 void addSetCheckpointCallback(setCheckpointCallback eventCallback);
 void invokeSetCheckpointCallbacks(float x, float y, float z, float size);
@@ -41,10 +41,10 @@ void invokeOnDialogResponseCallbacks(uint8_t button, enum eDialogStyle style, ui
 
 // ----- Extern linked list declarations -----
 
-extern struct stEventListener<setCheckpointCallback>	*g_SetCheckpointCallbacks;
-extern struct stEventListener<addMessageCallback>		*g_AddMessageCallbacks;
-extern struct stEventListener<showBigMessageCallback>	*g_ShowBigMessageCallbacks;
-extern struct stEventListener<scoreboardUpdateCallback>	*g_ScoreboardUpdateCallbacks;
-extern struct stEventListener<onDialogResponseCallback>	*g_OnDialogResponseCallbacks;
+extern struct stGameCallbackList<setCheckpointCallback>		*g_SetCheckpointCallbacks;
+extern struct stGameCallbackList<addMessageCallback>		*g_AddMessageCallbacks;
+extern struct stGameCallbackList<showBigMessageCallback>	*g_ShowBigMessageCallbacks;
+extern struct stGameCallbackList<scoreboardUpdateCallback>	*g_ScoreboardUpdateCallbacks;
+extern struct stGameCallbackList<onDialogResponseCallback>	*g_OnDialogResponseCallbacks;
 
 #endif
