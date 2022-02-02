@@ -7,8 +7,6 @@ namespace CheatZvejyba {
 	
 	void setupCheat();
 	void updateCheat();
-
-	void pullFish();
 };
 
 #endif

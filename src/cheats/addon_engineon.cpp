@@ -3,6 +3,7 @@
 #include "game/helpers/sampfuncs.hpp"
 #include "game/gtasa.h"
 #include "utils/helper.h"
+#include "utils/input.h"
 #include "settings.h"
 #include <thread>
 
@@ -49,7 +50,13 @@ void AddonEngineon::setupAddon()
 		Log("addon_engineon.cpp: Loading settings");
 	#endif
 
-	bAddonEnabled = Settings::getBool("lsg", "autoEngineStart", true);
+	// Cheat is only meant for lsgyvenimas.lt server, so
+	// disable it if player is not connecting to that server
+	if(!strncmp(g_Samp->szHostAddress, "54.36.124.11", 12)){
+		bAddonEnabled = Settings::getBool("lsg", "autoEngineStart", true);
+	}else{
+		bAddonEnabled = false;
+	}
 }
 
 void AddonEngineon::updateAddon()

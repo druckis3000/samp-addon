@@ -3,7 +3,7 @@
 
 namespace CheatLaikrasciai {
 
-	// ----- Public function declarations -----
+	// ----- Public functions -----
 
 	void setupCheat();
 	void updateCheat();

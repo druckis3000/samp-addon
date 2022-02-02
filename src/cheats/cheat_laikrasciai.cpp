@@ -1,6 +1,6 @@
 #include "cheat_laikrasciai.h"
 #include "game/samp.h"
-#include "utils/event.h"
+#include "game/utils/callbacks.h"
 #include "utils/helper.h"
 #include "game/gtasa.h"
 #include "game/vecmath.h"
@@ -98,7 +98,13 @@ void CheatLaikrasciai::setupCheat()
 		Log("cheat_laikrasciai.cpp: Loading settings");
 	#endif
 
-	bCheatEnabled = Settings::getBool("lsg", "laikrasciai", false);
+	// Cheat is only meant for lsgyvenimas.lt server, so
+	// disable it if player is not connecting to that server
+	if(!strncmp(g_Samp->szHostAddress, "54.36.124.11", 12)){
+		bCheatEnabled = Settings::getBool("lsg", "laikrasciai", false);
+	}else{
+		bCheatEnabled = false;
+	}
 }
 
 void CheatLaikrasciai::updateCheat()

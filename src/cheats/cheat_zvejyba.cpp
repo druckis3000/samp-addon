@@ -1,9 +1,9 @@
 #include "cheat_zvejyba.h"
 #include "utils/helper.h"
 #include "game/samp.h"
-#include "utils/event.h"
+#include "game/utils/callbacks.h"
 #include "game/helpers/sampfuncs.hpp"
-#include "utils/keycombo.h"
+#include "utils/input.h"
 #include "game/gtasa.h"
 #include "settings.h"
 #include <thread>
@@ -16,7 +16,6 @@
  * 
  * /ztd - for showing fish count textdraw
  * /zzv - toggle fishing bot
- * /afk - toggle afk mode (toggle cursor as well)
  */
 
 namespace CheatZvejyba {
@@ -55,6 +54,7 @@ namespace CheatZvejyba {
 
 	// ----- Private functions -----
 	
+	void pullFish();
 	void throwAgain();
 	void updateFishCount(int c);
 }
@@ -113,7 +113,13 @@ void CheatZvejyba::setupCheat()
 		Log("cheat_zvejyba.cpp: Loading settings");
 	#endif
 
-	bCheatEnabled = Settings::getBool("lsg", "zvejybaBot", true);
+	// Cheat is only meant for lsgyvenimas.lt server, so
+	// disable it if player is not connecting to that server
+	if(!strncmp(g_Samp->szHostAddress, "54.36.124.11", 12)){
+		bCheatEnabled = Settings::getBool("lsg", "zvejybaBot", true);
+	}else{
+		bCheatEnabled = false;
+	}
 }
 
 void CheatZvejyba::updateCheat()
