@@ -6,10 +6,11 @@
 #include <thread>
 #include "utils/helper.h"
 #include "main.h"
+#include "settings.h"
 #include "utils/memfuncs.h"
 #include "game/samp.h"
 #include "game/gtasa.h"
-#include "utils/event.h"
+#include "game/utils/callbacks.h"
 #include "game/helpers/fastloader.hpp"
 
 #include "cheats/cheat_zvejyba.h"
@@ -40,20 +41,19 @@ void MainThreadFunc()
 	std::cout.rdbuf(outFile.rdbuf());
 
 	Log("SCR loading...");
+	if(!Settings::loadSettings()){
+		Log("Failed to read settings file, using default values");
+	}
 
 	// Initialize fast loader
 	initFastLoader();
 	Log("FastLoader ready!");
 
 	// Setup event listening system
-	setupEventListeners();
+	setupGameCallbacks();
 
 	// Setup samp hooks/pointers/patches
-	bool success = SAMP::setupSystem();
-	if(!success){
-		Log("scr.asi exiting!");
-		return;
-	}
+	SAMP::setupSystem();
 	
 	// Setup gta hooks/pointers/patches
 	GTA_SA::setupSystem();
